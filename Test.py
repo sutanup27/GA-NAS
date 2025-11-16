@@ -3,11 +3,9 @@ import numpy as np
 from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score
 import torch
 from torch import nn
-from DataPreprocessing import get_dataloaders,train_transform,test_transform
+from DataPreprocessing import get_dataloaders
 from Model_Evaluation import get_model_macs, get_model_size, get_model_sparsity
-from PrunUtillCP import channel_prune_resnet18
 from Utill import get_labels_preds, measure_latency, print_model
-from VGG import VGG
 from TrainingModules import evaluate  # Ensure you import your correct model architecture
 import torch
 

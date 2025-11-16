@@ -1,13 +1,8 @@
-import pickle
 
-import torch
-from Model_Evaluation import get_model_macs, get_model_size, get_model_sparsity
-from PrunUtillCP import channel_prune 
 from ResNet import *
 from torch import nn
 
 from Utill import print_model
-from VGG import VGG
 from Viewer import accumulate_plot_figures
 
 model=ResNet34(classes=10)
