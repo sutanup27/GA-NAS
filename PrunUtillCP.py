@@ -9,7 +9,6 @@ from torchvision.transforms import *
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-
 def get_num_channels_to_keep(channels: int, prune_ratio: float) -> int:
     """A function to calculate the number of layers to PRESERVE after pruning
     Note that preserve_rate = 1. - prune_ratio

@@ -18,13 +18,13 @@ KiB = 1024 * Byte
 MiB = 1024 * KiB
 GiB = 1024 * MiB
 # Initialize the model
-path='../dataset/cifar10'
+path='./dataset/cifar10'
 select_model='Resnet-34'
 pruning_type='FGP'
 #model_path='./checkpoint/vgg_mrl_99.51375579833984.pth'
-model_path='checkpoint/Resnet-34/Resnet-34_cifar_95.69000244140625.pth'
+model_path='PruningNAS/checkpoint/Resnet-34/Resnet-34_cifar_95.69000244140625.pth'
 # Load the saved state_dict correctly
-model = torch.load(model_path, map_location=torch.device(device))  # Use 'cpu' if necessary
+model = torch.load(model_path, map_location=torch.device(device),weights_only=False)  # Use 'cpu' if necessary
 
 model.to(device)
 
