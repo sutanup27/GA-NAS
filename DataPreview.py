@@ -19,13 +19,13 @@ import torchvision
 from torchprofile import profile_macs
 from sklearn.metrics import confusion_matrix,precision_score, recall_score, f1_score
 import time
-from pygame import mixer
 import copy
 from typing import Union,List
 
 from DataPreprocessing import  get_datasets
 
-path='../dataset/cifar10'
+path='./dataset/cifar10'
+out_path='./output'
 train_dataloader,test_datasets=get_datasets(path)
 
 samples = [[] for _ in range(10)]
@@ -51,5 +51,6 @@ for index in range(40):
   plt.title(label)
   plt.axis("off")
 plt.show()
+plt.savefig(out_path+'/sample.png')
 
 print("End")
