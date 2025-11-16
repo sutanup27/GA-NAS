@@ -134,5 +134,5 @@ def accumulate_plot_figures(save_path):
             i=i+1
     plt.tight_layout(pad=-0.00)
     plt.show()
-    # plt.savefig(save_path)
+    plt.savefig(save_path)
     plt.close()

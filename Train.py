@@ -24,7 +24,7 @@ path='./dataset/cifar10'
 classes=10
 train_dataloader,test_dataloader=get_dataloaders(path,batch_size=64)
 
-select_model='Vgg-16'
+select_model='Resnet-34'
 if select_model=='Vgg-16':
     model=VGG(classes=classes)
 elif select_model=='Resnet-18':
@@ -49,9 +49,9 @@ model = model.to(device)
 
 
 criterion = nn.CrossEntropyLoss()
-optimizer = SGD( model.parameters(), lr=0.1,  momentum=0.9,  weight_decay=5e-4,)
+optimizer = SGD( model.parameters(), lr=0.0001,  momentum=0.9,  weight_decay=5e-4,)
 
-num_epochs=200
+num_epochs=100
 scheduler = CosineAnnealingLR(optimizer, num_epochs)
 # scheduler = CosineAnnealingLR(optimizer, T_max=50)
 

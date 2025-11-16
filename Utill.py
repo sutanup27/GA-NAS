@@ -11,6 +11,7 @@ from torchvision.datasets import *
 from torchvision.transforms import *
 from PrunUtillCP import ChannelPrunner
 from PrunUtillFGP import fine_grained_prune
+from ResNet import ResNet
 from TrainingModules import evaluate
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -224,4 +225,24 @@ def measure_latency(main_model,dummy_input, n_warmup=20, n_test=100, d='cpu'):
     t2 = time.time()
     return (t2 - t1) / n_test  # average latency
 
-
+def get_sparsity_dic_template(model,prun_type='CP'):
+    dct={}
+    if prun_type=='FGP':
+        for name, param in model.named_modules():
+            if isinstance(param, nn.Conv2d) or isinstance(param, nn.Linear): # we only prune conv and fc weights
+                print(f'\'{name}\':0.90,')
+                dct[name]=0.90
+    else:
+        if isinstance(model,ResNet):
+            for name, layer in model.named_children():
+                if isinstance(layer,nn.Conv2d):
+                    key=f'{name}'
+                    print(f'\'{name}\':0.90,')
+                    dct[key]=0.90
+                if isinstance(layer,nn.Sequential):
+                    for sub_name, sub_layer in layer.named_children():
+                        key=f'{name}.{sub_name}'
+                        print(f'\'{name}.{sub_name}\':0.90,')
+                        dct[key]=0.90
+        
+    return dct

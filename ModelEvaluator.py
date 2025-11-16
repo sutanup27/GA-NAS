@@ -24,7 +24,7 @@ GiB = 1024 * MiB
 path='./dataset/cifar10'
 # Initialize the model
 
-model_path='PruningNAS/checkpoint/Resnet-34/Resnet-34_cifar_95.69000244140625.pth'
+model_path='PruningNAS/checkpoint/Resnet-34/FGP/Resnet-34_cifar_FGP_95.0999984741211.pth'
 # Load the saved state_dict correctly
 model = torch.load(model_path, map_location=torch.device(device), weights_only=False)  # Use 'cpu' if necessary
 model.to(device)
