@@ -1,7 +1,7 @@
 import random
 from matplotlib import pyplot as plt
 import torch
-from Model_Evaluation import get_sparsity
+from EvaluatiorUtills import get_sparsity
 from Utill import fine_grained_prune
 seed=0
 random.seed(seed)

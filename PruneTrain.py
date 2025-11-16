@@ -3,7 +3,7 @@ import copy
 import random
 import torch
 from DataPreprocessing import get_dataloaders
-from Model_Evaluation import get_model_size, get_sparsity
+from EvaluatiorUtills import get_model_size, get_sparsity
 from PrunUtillCP import ChannelPrunner
 from PrunUtillFGP import FineGrainedPruner
 from TrainingModules import TrainingPrunned, evaluate

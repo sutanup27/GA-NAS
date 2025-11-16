@@ -1,5 +1,3 @@
-
-
 from matplotlib import path
 import torch
 from torch.optim import *

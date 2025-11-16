@@ -20,11 +20,11 @@ print("Device:",device)
 seed=0
 random.seed(seed)
 
-path='../dataset/cifar10'
+path='./dataset/cifar10'
 classes=10
 train_dataloader,test_dataloader=get_dataloaders(path,batch_size=64)
 
-select_model='Resnet-18'
+select_model='Vgg-16'
 if select_model=='Vgg-16':
     model=VGG(classes=classes)
 elif select_model=='Resnet-18':
