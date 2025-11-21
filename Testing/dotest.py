@@ -6,8 +6,8 @@ from torchvision.datasets import *
 from torchvision.transforms import *
 
 from DataPreprocessing import get_dataloaders
-from ResNet import ResNet18
-from Utill import print_model
+from ..Models.ResNet import *
+from ..Utills.Utill import print_model
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 model=ResNet34(classes=10)

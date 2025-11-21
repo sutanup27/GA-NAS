@@ -9,11 +9,11 @@ from torch.optim.lr_scheduler import *
 from torchvision.datasets import *
 from torchvision.transforms import *
 from DataPreprocessing import get_dataloaders
-from ResNet import *
-from TrainingModules import evaluate
-from VGG import VGG
-from TrainingModules import Training
-from Viewer import plot_accuracy, plot_loss
+from .Models.ResNet import *
+from .Utills.TrainingModulesUtills import evaluate
+from .Models.VGG import VGG
+from .Utills.TrainingModulesUtills import Training
+from .Utills.ViewerUtills import plot_accuracy, plot_loss
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Device:",device)
 

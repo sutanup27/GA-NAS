@@ -1,8 +1,8 @@
 import random
 from matplotlib import pyplot as plt
 import torch
-from EvaluatiorUtills import get_sparsity
-from Utill import fine_grained_prune
+from ..Utills.EvaluatiorUtills import get_sparsity
+from ..Utills.Utill import fine_grained_prune
 seed=0
 random.seed(seed)
 

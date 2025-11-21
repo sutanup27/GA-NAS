@@ -11,8 +11,8 @@ from torchvision.datasets import *
 from torchvision.transforms import *
 from PrunUtillCP import ChannelPrunner
 from PrunUtillFGP import fine_grained_prune
-from ResNet import ResNet
-from TrainingModules import evaluate
+from ..Models.ResNet import ResNet
+from .TrainingModulesUtills import evaluate
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def download_url(url, model_dir='.', overwrite=False):
@@ -246,3 +246,8 @@ def get_sparsity_dic_template(model,prun_type='CP'):
                         dct[key]=0.90
         
     return dct
+
+def Model_to_sd(path):
+
+    model = torch.load(path, map_location=torch.device(device))  # Use 'cpu' if necessary
+    model.to(device)

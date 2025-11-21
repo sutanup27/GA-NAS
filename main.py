@@ -1,15 +1,11 @@
-import numpy as np
-import random
-from torch.optim import *
-from torch.optim.lr_scheduler import *
-from torchvision.datasets import *
-from torchvision.transforms import *
 
+from PruningNAS.Models.ResNet import *
+from torch import nn
 
-#fix the randomness
-seed=0
-random.seed(seed)
-np.random.seed(seed)
+from .Utills.Utill import get_sparsity_dic_template, print_model
+from .Utills.ViewerUtills import accumulate_plot_figures
 
+model=ResNet34(classes=10)
 
-
+get_sparsity_dic_template(model,'CP')
+#accumulate_plot_figures('PruningNAS/checkpoint/Resnet-34/CP/sensitivity_curves')

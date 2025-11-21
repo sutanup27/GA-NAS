@@ -5,7 +5,7 @@ from torch.optim import *
 from torch.optim.lr_scheduler import *
 from torchvision.datasets import *
 from torchvision.transforms import *
-from Utill import download_url
+from PruningNAS.Utills.Utill import download_url
 
 class VGG(nn.Module):
   ARCH = [64, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M']
@@ -48,10 +48,4 @@ class VGG(nn.Module):
 #    x = self.fc1(x)
     x = self.fc2(x)
     return x
-
-
-def recover_model(PATH,model):
-  cp = torch.load(download_url(PATH), map_location="cpu")
-  return model.load_state_dict(cp)
-
 
