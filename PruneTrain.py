@@ -2,13 +2,13 @@ from torch import nn
 import copy
 import random
 import torch
-from DataPreprocessing import get_dataloaders
-from .Utills.EvaluatiorUtills import get_model_size, get_sparsity
-from .Utills.PrunUtillCP import ChannelPrunner
-from .Utills.PrunUtillFGP import FineGrainedPruner
-from .Utills.TrainingModulesUtills import TrainingPrunned, evaluate
-from .Utills.Utill import print_model
-from .Utills.ViewerUtills import plot_accuracy, plot_loss  # Ensure you import your correct model architecture
+from PruningNAS.DataProcess.DataPreprocessing import get_dataloaders
+from PruningNAS.Utills.EvaluatiorUtills import get_model_size, get_sparsity
+from PruningNAS.Utills.PrunUtillCP import ChannelPrunner
+from PruningNAS.Utills.PrunUtillFGP import FineGrainedPruner
+from PruningNAS.Utills.TrainingModulesUtills import TrainingPrunned, evaluate
+from PruningNAS.Utills.Utill import print_model
+from PruningNAS.Utills.ViewerUtills import plot_accuracy, plot_loss  # Ensure you import your correct model architecture
 seed=0
 random.seed(seed)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

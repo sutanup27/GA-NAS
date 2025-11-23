@@ -2,8 +2,8 @@
 from PruningNAS.Models.ResNet import *
 from torch import nn
 
-from .Utills.Utill import get_sparsity_dic_template, print_model
-from .Utills.ViewerUtills import accumulate_plot_figures
+from PruningNAS.Utills.Utill import get_sparsity_dic_template, print_model
+from PruningNAS.Utills.ViewerUtills import accumulate_plot_figures
 
 model=ResNet34(classes=10)
 

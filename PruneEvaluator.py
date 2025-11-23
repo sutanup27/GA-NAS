@@ -1,9 +1,9 @@
 import pickle
 import torch
-from .DataProcess.DataPreprocessing import get_dataloaders
-from .Utills.TrainingModulesUtills import evaluate
-from .Utills.Utill import plot_sensitivity_scan, sensitivity_scan
-from .Utills.ViewerUtills import accumulate_plot_figures, plot_weight_distribution  # Ensure you import your correct model architecture
+from PruningNAS.DataProcess.DataPreprocessing import get_dataloaders
+from PruningNAS.Utills.TrainingModulesUtills import evaluate
+from PruningNAS.Utills.Utill import plot_sensitivity_scan, sensitivity_scan
+from PruningNAS.Utills.ViewerUtills import accumulate_plot_figures, plot_weight_distribution  # Ensure you import your correct model architecture
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)

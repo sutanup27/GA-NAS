@@ -9,9 +9,9 @@ from torch.optim import *
 from torch.optim.lr_scheduler import *
 from torchvision.datasets import *
 from torchvision.transforms import *
-from PrunUtillCP import ChannelPrunner
-from PrunUtillFGP import fine_grained_prune
-from ..Models.ResNet import ResNet
+from .PrunUtillCP import ChannelPrunner
+from .PrunUtillFGP import fine_grained_prune
+from ..Models.ResNetBasic import ResNetBasic
 from .TrainingModulesUtills import evaluate
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -233,7 +233,7 @@ def get_sparsity_dic_template(model,prun_type='CP'):
                 print(f'\'{name}\':0.90,')
                 dct[name]=0.90
     else:
-        if isinstance(model,ResNet):
+        if isinstance(model,ResNetBasic):
             for name, layer in model.named_children():
                 if isinstance(layer,nn.Conv2d):
                     key=f'{name}'
