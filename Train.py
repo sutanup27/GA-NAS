@@ -66,7 +66,7 @@ print(f"Best model accuray:", metric)
 plot_accuracy(accs)
 plot_loss(losses,test_losses)
 
-torch.save(model, f'{basedir}/checkpoint/{select_model}/{select_model}_cifar_{metric}.pth')
-torch.save(model.state_dict(), f'{basedir}/checkpoint/{select_model}/{select_model}_cifar_{metric:0.2f}_state_dict.pth')
+torch.save(model, f'{basedir}/checkpoint/{select_model}/{select_model}_cifar_{metric:0.6f}.pth')
+torch.save(model.state_dict(), f'{basedir}/checkpoint/{select_model}/{select_model}_cifar_{metric:0.6f}_state_dict.pth')
 
     
