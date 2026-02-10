@@ -201,6 +201,31 @@ def channel_prune_resnet(model, prune_ratios: Union[float, dict,list]):
             block.shortcut[1].running_var.set_(block.shortcut[1].running_var.detach()[:n_keep])
         return n_keep #we will need n_keep to fix next conv' inchannels fixing
 
+    def prune_bn_block(block, prune_ratios, n_keep):
+        if block.shortcut:
+            block.shortcut[0].weight.set_(block.shortcut[0].weight.detach()[:,:n_keep]) #fixing number of inchannels due to previous channel change
+
+        block.conv1.weight.set_(block.conv1.weight.detach()[:,:n_keep]) #fixing number of inchannels due to previous channel chang
+
+        original_channels=block.conv1.out_channels
+        n_keep_mid = get_num_channels_to_keep(original_channels, prune_ratios)
+        block.conv1.weight.set_(block.conv1.weight.detach()[:n_keep_mid])
+        block.bn1.weight.set_(block.bn1.weight.detach()[:n_keep_mid])
+        block.bn1.bias.set_(block.bn1.bias.detach()[:n_keep_mid])
+        block.bn1.running_mean.set_(block.bn1.running_mean.detach()[:n_keep_mid])
+        block.bn1.running_var.set_(block.bn1.running_var.detach()[:n_keep_mid])
+
+        block.conv2.weight.set_(block.conv2.weight.detach()[:,:n_keep_mid]) #fixing number of inchannels due to previous channel change
+
+        block.conv2.weight.set_(block.conv2.weight.detach()[:n_keep_mid])
+        block.bn2.weight.set_(block.bn2.weight.detach()[:n_keep_mid])
+        block.bn2.bias.set_(block.bn2.bias.detach()[:n_keep_mid])
+        block.bn2.running_mean.set_(block.bn2.running_mean.detach()[:n_keep_mid])
+        block.bn2.running_var.set_(block.bn2.running_var.detach()[:n_keep_mid])
+
+        block.conv3.weight.set_(block.conv3.weight.detach()[:,:n_keep_mid]) #fixing number of inchannels due to previous channel change
+        return block.conv3.out_channels
+
     assert isinstance(prune_ratios, (float, dict,list))
     # note that for the ratios, it affects the previous conv output and next
     # conv input, i.e., conv0 - ratio0 - conv1 - ratio1-...
@@ -223,7 +248,10 @@ def channel_prune_resnet(model, prune_ratios: Union[float, dict,list]):
         if isinstance(layer,nn.Sequential):
             for b in layer:
                 p_ratios=prune_ratios[i]
-                n_keep=prune_block(b,p_ratios,n_keep)
+                if hasattr(b, 'conv3'):
+                    n_keep=prune_bn_block(b,p_ratios,n_keep)
+                else:
+                    n_keep=prune_block(b,p_ratios,n_keep)
                 i=i+1
     
     model.fc.weight.set_(model.fc.weight.detach()[:,:n_keep]) #fixing number of inchannels due to previous channel change

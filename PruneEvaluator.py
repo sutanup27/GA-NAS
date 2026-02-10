@@ -10,18 +10,19 @@ print(device)
 # Initialize the model
 basedir='PruningNAS'
 path='./dataset/cifar10'
-select_model='Resnet-34'
-prune_type='FGP'
+select_model='Resnet-50'
+prune_type='CP'
 #model_path=f'{basedir}/checkpoint/vgg_mrl_99.51375579833984.pth'
-model_path=f'{basedir}/checkpoint/Resnet-34/Resnet-34_cifar_95.69000244140625.pth'
+model_path=f'{basedir}/checkpoint/Resnet-50/Resnet-50_cifar_92.87999725341797.pth'
 # Load the saved state_dict correctly
 model = torch.load(model_path, map_location=torch.device(device),weights_only=False)  # Use 'cpu' if necessary
 model.to(device)
 
-train_dataloader,test_dataloader=get_dataloaders(path )
-############# calculate sparsities (optional) #############################################
 sparsities_path=f'{basedir}/checkpoint/{select_model}/{prune_type}/{select_model}_sparsities.pkl'
 accuracies_path=f'{basedir}/checkpoint/{select_model}/{prune_type}/{select_model}_accuracies.pkl'
+
+train_dataloader,test_dataloader=get_dataloaders(path )
+############# calculate sparsities (optional) #############################################
 
 sparsities, accuracies,names = sensitivity_scan(
     model, test_dataloader, scan_step=0.1, scan_start=0.1, scan_end=1.0,prune_type=prune_type,select_model=select_model)
