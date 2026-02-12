@@ -23,8 +23,8 @@ def train(
   total_loss = 0
   for inputs, targets in tqdm(dataloader, desc=f'train epoch:{epoch}', leave=False):
     # Move the data from CPU to GPU
-    inputs = inputs.to(device)
-    targets = targets.to(device)
+    inputs = inputs.to(device, non_blocking=True)
+    targets = targets.to(device, non_blocking=True)
 
     # Reset the gradients (from the last iteration)
     optimizer.zero_grad()
@@ -78,8 +78,8 @@ def evaluate(
   for inputs, targets in tqdm(dataloader, desc="eval", leave=False,
                               disable=not verbose):
     # Move the data from CPU to GPU
-    inputs = inputs.to(device)
-    targets = targets.to(device)
+    inputs = inputs.to(device, non_blocking=True)
+    targets = targets.to(device, non_blocking=True)
 
     # Inference
     outputs1 = model(inputs)

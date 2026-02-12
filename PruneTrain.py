@@ -20,7 +20,7 @@ GiB = 1024 * MiB
 # Initialize the model
 basedir='PruningNAS'
 path='./dataset/cifar10'
-select_model='Resnet-34'
+select_model='Resnet-50'
 pruning_type='CP'
 #model_path='./checkpoint/vgg_mrl_99.51375579833984.pth'
 model_path=f'{basedir}/checkpoint/Resnet-34/Resnet-34_cifar_95.69000244140625.pth'

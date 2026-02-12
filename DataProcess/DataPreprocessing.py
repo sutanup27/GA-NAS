@@ -1,4 +1,5 @@
 import numpy as np
+import os
 import random
 import torch
 from torch.optim import *
@@ -8,13 +9,14 @@ from torchvision.datasets import *
 from torchvision.transforms import *
  
 
-def set_seed(seed=42):
+def set_seed(seed=42, deterministic=False):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)  # If using multi-GPU
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False  # Slows training but ensures reproducibility
+    # Deterministic runs are slower; keep it optional
+    torch.backends.cudnn.deterministic = deterministic
+    torch.backends.cudnn.benchmark = not deterministic
 mean = [0.4914, 0.4822, 0.4465]
 std = [0.2023, 0.1994, 0.2010]
 
@@ -44,19 +46,33 @@ def get_datasets(path,train_transform=train_transform,test_transform=test_transf
 
 
 
-def get_dataloaders(path,train_transform=train_transform,test_transform=test_transform, train_test_val_pecentage=[0.80, 0.20], batch_size=512):
-    set_seed(0)
+def get_dataloaders(
+    path,
+    train_transform=train_transform,
+    test_transform=test_transform,
+    train_test_val_pecentage=[0.80, 0.20],
+    batch_size=512,
+    num_workers=None,
+    deterministic=False,
+):
+    set_seed(0, deterministic=deterministic)
+    if num_workers is None:
+        cpu_count = os.cpu_count() or 0
+        num_workers = min(8, cpu_count) if cpu_count > 0 else 0
     dataset={}
     dataset["train"], dataset["test"]=get_datasets(path, train_transform, test_transform, train_test_val_pecentage)
     dataloader = {}
     for split in ['train', 'test']:
-        dataloader[split] = DataLoader(
-            dataset[split],
-            batch_size=batch_size,
-            shuffle=(split == 'train'),
-            num_workers=0,
-            pin_memory=True,
-        )
+        loader_kwargs = {
+            "batch_size": batch_size,
+            "shuffle": (split == 'train'),
+            "num_workers": num_workers,
+            "pin_memory": True,
+        }
+        if num_workers > 0:
+            loader_kwargs["persistent_workers"] = True
+            loader_kwargs["prefetch_factor"] = 2
+        dataloader[split] = DataLoader(dataset[split], **loader_kwargs)
     return dataloader['train'],dataloader['test']
 
 
