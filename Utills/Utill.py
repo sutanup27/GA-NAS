@@ -93,6 +93,7 @@ def sensitivity_scan_FGP(model, dataloader, scan_step=0.1, scan_start=0.4, scan_
     for i_layer, (name, param) in enumerate(prunable_weights):
         param_clone = param.weight.detach().clone()
         accuracy = []
+        print(f'Layer :{i_layer}| name :{name}')
         for sparsity in sparsities:
             fine_grained_prune(param.weight.detach(), sparsity=sparsity)
             acc,_ = evaluate(model, dataloader, verbose=False)
@@ -115,6 +116,7 @@ def sensitivity_scan_CP(model, dataloader, scan_step=0.1, scan_start=0.4, scan_e
     for i_layer, (name, param) in enumerate(prunable_weights):
         accuracy = []
         sparsity_dict=[0.0]*len(prunable_weights)
+        print(f'Layer :{i_layer}| name :{name}')
         for sparsity in sparsities:
             sparsity_dict[i_layer]=float(sparsity)
             pruned_model=ChannelPrunner(model, sparsity_dict,select_model)

@@ -11,11 +11,11 @@ def main():
     print(device)
     # Initialize the model
     basedir='PruningNAS'
-    path='./dataset/cifar101'
-    select_model='Resnet-'
+    path='./dataset/cifar10'
+    select_model='Resnet-152'
     prune_type='FGP'
     #model_path=f'{basedir}/checkpoint/vgg_mrl_99.51375579833984.pth'
-    model_path=f'{basedir}/checkpoint/Resnet-50/Resnet-50_cifar_95.739998.pth'
+    model_path=f'{basedir}/checkpoint/Resnet-152/Resnet-152_cifar_95.830002.pth'
     # Load the saved state_dict correctly
     model = torch.load(model_path, map_location=torch.device(device),weights_only=False)  # Use 'cpu' if necessary
     model.to(device)
@@ -49,7 +49,6 @@ def main():
     plot_weight_distribution(model,names,save_path=save_image_path1)
     plot_sensitivity_scan( names, sparsities, accuracies, dense_model_accuracy,save_image_path2)
     accumulate_plot_figures(f'{basedir}/checkpoint/{select_model}/{prune_type}/sensitivity_curves')
-
 
 
 if __name__ == '__main__':
