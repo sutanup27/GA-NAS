@@ -17,6 +17,7 @@ from .DataProcess.DataPreprocessing import get_dataloaders
 from .Models.VGG import *
 from .Utills.TrainingModulesUtills import Training
 from .Utills.ViewerUtills import plot_accuracy, plot_loss
+
 def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Device:", device)
