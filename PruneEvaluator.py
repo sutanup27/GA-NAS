@@ -26,14 +26,14 @@ def main():
     train_dataloader,test_dataloader=get_dataloaders(path )
     ############# calculate sparsities (optional) #############################################
 
-    sparsities, accuracies,names = sensitivity_scan(
-    model, test_dataloader, scan_step=0.1, scan_start=0.1, scan_end=1.0,prune_type=prune_type,select_model=select_model)
+    # sparsities, accuracies,names = sensitivity_scan(
+    # model, test_dataloader, scan_step=0.1, scan_start=0.1, scan_end=1.0,prune_type=prune_type,select_model=select_model)
 
-    with open(sparsities_path, "wb") as f:
-        pickle.dump(sparsities, f)
+    # with open(sparsities_path, "wb") as f:
+    #     pickle.dump(sparsities, f)
 
-    with open(accuracies_path, "wb") as f:
-        pickle.dump((accuracies,names), f)
+    # with open(accuracies_path, "wb") as f:
+    #     pickle.dump((accuracies,names), f)
 
     ############################################################################################
     with open(sparsities_path, "rb") as f:
@@ -49,6 +49,16 @@ def main():
     plot_weight_distribution(model,names,save_path=save_image_path1)
     plot_sensitivity_scan( names, sparsities, accuracies, dense_model_accuracy,save_image_path2)
     accumulate_plot_figures(f'{basedir}/checkpoint/{select_model}/{prune_type}/sensitivity_curves')
+
+
+def load_and_print_accuracies(pickle_file):
+    """Load pickle file and print accuracies with parameter names."""
+    with open(pickle_file, 'rb') as f:
+        data = pickle.load(f)
+    
+    # Print accuracies with parameter names
+    for i, name in enumerate(data[1]):
+        print(f"{name}: {data[0][i]}")
 
 
 if __name__ == '__main__':
