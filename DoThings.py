@@ -1,13 +1,14 @@
 import torch
-from PruningNAS.Models.DenseNet import DenseNet121
-from PruningNAS.Models.ResNetBasic import ResNet34
+from PruningNAS.Models.DenseNet import *
+from PruningNAS.Models.ResNetBasic import *
+from PruningNAS.Models.ResNetBottleNeck import *
 from PruningNAS.Utills.PrunUtillCP import ChannelPrunner, channel_prune_resnet
 
 # Initialize DenseNet-121 model
-model = ResNet34(classes=10)
+model = ResNet50(classes=10)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # Load pre-trained weights (if available)
-model_path = r'D:\Sutanu_WorkSpace\PruningNAS\PruningNAS\checkpoint\Resnet-50\Resnet-50_cifar_95.739998.pth'
+model_path = r'PruningNAS\checkpoint\Resnet-50\Resnet-50_cifar_95.739998.pth'
 model = torch.load(model_path, map_location=torch.device(device),weights_only=False)  # Use 'cpu' if necessary
 model.to(device)
 

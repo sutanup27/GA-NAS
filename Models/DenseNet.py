@@ -81,7 +81,7 @@ class DenseNet(nn.Module):
                  growth_rate=32,
                  block_config=(6, 12, 24, 16),  # DenseNet-121
                  num_init_features=64,
-                 num_classes=10):
+                 classes=10):
 
         super().__init__()
 
@@ -109,7 +109,7 @@ class DenseNet(nn.Module):
                 channels = trans_out
 
         self.final_bn = nn.BatchNorm2d(channels)
-        self.fc = nn.Linear(channels, num_classes)
+        self.fc = nn.Linear(channels, classes)
 
     def forward(self, x):
         x = self.init_conv(x)
@@ -129,12 +129,12 @@ class DenseNet(nn.Module):
 # Factory functions
 # ---------------------------
 def DenseNet121(classes=10):
-    return DenseNet(growth_rate=32, block_config=(6, 12, 24, 16), num_classes=classes)
+    return DenseNet(growth_rate=32, block_config=(6, 12, 24, 16), classes=classes)
 
 
 def DenseNet169(classes=10):
-    return DenseNet(growth_rate=32, block_config=(6, 12, 32, 32), num_classes=classes)
+    return DenseNet(growth_rate=32, block_config=(6, 12, 32, 32), classes=classes)
 
 
 def DenseNet201(classes=10):
-    return DenseNet(growth_rate=32, block_config=(6, 12, 48, 32), num_classes=classes)
+    return DenseNet(growth_rate=32, block_config=(6, 12, 48, 32), classes=classes)

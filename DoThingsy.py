@@ -3,6 +3,6 @@ import pickle
 from PruningNAS.PruneEvaluator import load_and_print_accuracies
 
 # Path to the pickle file
-pickle_file = r"D:\Sutanu_WorkSpace\PruningNAS\PruningNAS\checkpoint\Resnet-50\FGP\Resnet-50_accuracies.pkl"
+pickle_file = r"PruningNAS\checkpoint\Resnet-18\FGP\Resnet-18_accuracies.pkl"
 
 load_and_print_accuracies(pickle_file)

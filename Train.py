@@ -30,7 +30,7 @@ def main():
     classes=10
     train_dataloader, test_dataloader = get_dataloaders(path, batch_size=128)
 
-    select_model='Resnet-34'
+    select_model='Resnet-18'
     if select_model=='Vgg-16':
         model=VGG(classes=classes)
     elif select_model=='Resnet-18':
@@ -50,15 +50,15 @@ def main():
         exit
 
     # ########load from path only for retraining #####
-    model_path=r'PruningNAS\checkpoint\Resnet-34\Resnet-34_cifar_95.620003.pth'
+    model_path=r'PruningNAS\checkpoint\Resnet-18\FGP\Resnet-18_cifar_FGP_93.68000030517578.pth'
     model = torch.load(model_path, map_location=torch.device(device),weights_only=False)  # Use 'cpu' if necessary
     ################################################
     model = model.to(device)
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = SGD( model.parameters(), lr=0.00003,  momentum=0.9,  weight_decay=5e-4,)
+    optimizer = SGD( model.parameters(), lr=0.003,  momentum=0.9,  weight_decay=5e-4,)
 
-    num_epochs=100
+    num_epochs = 40
     scheduler = CosineAnnealingLR(optimizer, num_epochs)
     # scheduler = CosineAnnealingLR(optimizer, T_max=50)
 

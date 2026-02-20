@@ -12,10 +12,10 @@ def main():
     # Initialize the model
     basedir='PruningNAS'
     path='./dataset/cifar10'
-    select_model='Resnet-152'
+    select_model='Resnet-18'
     prune_type='FGP'
     #model_path=f'{basedir}/checkpoint/vgg_mrl_99.51375579833984.pth'
-    model_path=f'{basedir}/checkpoint/Resnet-152/Resnet-152_cifar_95.830002.pth'
+    model_path=f'{basedir}/checkpoint/{select_model}/Resnet-18_cifar_95.659996.pth'
     # Load the saved state_dict correctly
     model = torch.load(model_path, map_location=torch.device(device),weights_only=False)  # Use 'cpu' if necessary
     model.to(device)
@@ -26,14 +26,14 @@ def main():
     train_dataloader,test_dataloader=get_dataloaders(path )
     ############# calculate sparsities (optional) #############################################
 
-    # sparsities, accuracies,names = sensitivity_scan(
-    # model, test_dataloader, scan_step=0.1, scan_start=0.1, scan_end=1.0,prune_type=prune_type,select_model=select_model)
+    sparsities, accuracies,names = sensitivity_scan(
+    model, test_dataloader, scan_step=0.1, scan_start=0.1, scan_end=1.0,prune_type=prune_type,select_model=select_model)
 
-    # with open(sparsities_path, "wb") as f:
-    #     pickle.dump(sparsities, f)
+    with open(sparsities_path, "wb") as f:
+        pickle.dump(sparsities, f)
 
-    # with open(accuracies_path, "wb") as f:
-    #     pickle.dump((accuracies,names), f)
+    with open(accuracies_path, "wb") as f:
+        pickle.dump((accuracies,names), f)
 
     ############################################################################################
     with open(sparsities_path, "rb") as f:

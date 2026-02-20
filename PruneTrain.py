@@ -23,34 +23,48 @@ def main():
     # Initialize the model
     basedir='PruningNAS'
     path='./dataset/cifar10'
-    select_model='Resnet-50'
-    pruning_type='CP'
+    select_model='Resnet-18'
+    pruning_type='FGP'
     #model_path='./checkpoint/vgg_mrl_99.51375579833984.pth'
-    model_path=f'{basedir}/checkpoint/Resnet-50/Resnet-50_cifar_95.739998.pth'
+    model_path=r'PruningNAS\checkpoint\Resnet-18\Resnet-18_cifar_95.659996.pth'
     # Load the saved state_dict correctly
     model = torch.load(model_path, map_location=torch.device(device),weights_only=False)  # Use 'cpu' if necessary
 
     model.to(device)
 
-    sparsity_dict = {
-        "conv1": 0.3,
-        "layer1.0": 0.4,
-        "layer1.1": 0.9,
-        "layer1.2": 0.3,
-        "layer2.0": 0.4,
-        "layer2.1": 0.9,
-        "layer2.2": 0.9,
-        "layer2.3": 0.8,
-        "layer3.0": 0.3,
-        "layer3.1": 0.9,
-        "layer3.2": 0.9,
-        "layer3.3": 0.8,
-        "layer3.4": 0.7,
-        "layer3.5": 0.6,
-        "layer4.0": 0.4,
-        "layer4.1": 0.9,
-        "layer4.2": 0.8
-    }
+    sparsity_dict =  {
+    "conv1": 0.8,
+
+    "layer1.0.conv1": 0.9,
+    "layer1.0.conv2": 0.9,
+    "layer1.1.conv1": 0.9,
+    "layer1.1.conv2": 0.9,
+
+    "layer2.0.conv1": 0.7,
+    "layer2.0.conv2": 0.7,
+    "layer2.0.shortcut.0": 0.9,
+
+    "layer2.1.conv1": 0.8,
+    "layer2.1.conv2": 0.9,
+
+    "layer3.0.conv1": 0.7,
+    "layer3.0.conv2": 0.7,
+    "layer3.0.shortcut.0": 0.9,
+
+    "layer3.1.conv1": 0.7,
+    "layer3.1.conv2": 0.9,
+
+    "layer4.0.conv1": 0.9,
+    "layer4.0.conv2": 0.9,
+    "layer4.0.shortcut.0": 0.9,
+
+    "layer4.1.conv1": 0.9,
+    "layer4.1.conv2": 0.9,
+
+    "fc": 0.9
+}
+
+
 
     # sparsity_dict ={ 
     # 'conv1':0.80,

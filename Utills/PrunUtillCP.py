@@ -208,11 +208,11 @@ def channel_prune_vgg(model,
 
 @torch.no_grad()
 def channel_prune_resnet(model, prune_ratios: Union[float, dict,list]):    
-    def prune_block(block, prune_ratios,n_keep):
+    def prune_block(block, prune_ratios,prev_n_keep):
         if block.shortcut:
-            block.shortcut[0].weight.set_(block.shortcut[0].weight.detach()[:,:n_keep]) #fixing number of inchannels due to previous channel change
+            block.shortcut[0].weight.set_(block.shortcut[0].weight.detach()[:,:prev_n_keep]) #fixing number of inchannels due to previous channel change
 
-        block.conv1.weight.set_(block.conv1.weight.detach()[:,:n_keep]) #fixing number of inchannels due to previous channel chang
+        block.conv1.weight.set_(block.conv1.weight.detach()[:,:prev_n_keep]) #fixing number of inchannels due to previous channel chang
 
         original_channels=block.conv1.out_channels
         n_keep = get_num_channels_to_keep(original_channels, prune_ratios)
@@ -237,30 +237,42 @@ def channel_prune_resnet(model, prune_ratios: Union[float, dict,list]):
             block.shortcut[1].running_var.set_(block.shortcut[1].running_var.detach()[:n_keep])
         return n_keep #we will need n_keep to fix next conv' inchannels fixing
 
-    def prune_bn_block(block, prune_ratios, n_keep):
+    def prune_bn_block(block, prune_ratios, prev_n_keep):
         if block.shortcut:
-            block.shortcut[0].weight.set_(block.shortcut[0].weight.detach()[:,:n_keep]) #fixing number of inchannels due to previous channel change
+            block.shortcut[0].weight.set_(block.shortcut[0].weight.detach()[:,:prev_n_keep]) #fixing number of inchannels due to previous channel change
 
-        block.conv1.weight.set_(block.conv1.weight.detach()[:,:n_keep]) #fixing number of inchannels due to previous channel chang
+        block.conv1.weight.set_(block.conv1.weight.detach()[:,:prev_n_keep]) #fixing number of inchannels due to previous channel chang
 
         original_channels=block.conv1.out_channels
-        n_keep_mid = get_num_channels_to_keep(original_channels, prune_ratios)
-        block.conv1.weight.set_(block.conv1.weight.detach()[:n_keep_mid])
-        block.bn1.weight.set_(block.bn1.weight.detach()[:n_keep_mid])
-        block.bn1.bias.set_(block.bn1.bias.detach()[:n_keep_mid])
-        block.bn1.running_mean.set_(block.bn1.running_mean.detach()[:n_keep_mid])
-        block.bn1.running_var.set_(block.bn1.running_var.detach()[:n_keep_mid])
+        n_keep = get_num_channels_to_keep(original_channels, prune_ratios)
+        block.conv1.weight.set_(block.conv1.weight.detach()[:n_keep])
+        block.bn1.weight.set_(block.bn1.weight.detach()[:n_keep])
+        block.bn1.bias.set_(block.bn1.bias.detach()[:n_keep])
+        block.bn1.running_mean.set_(block.bn1.running_mean.detach()[:n_keep])
+        block.bn1.running_var.set_(block.bn1.running_var.detach()[:n_keep])
 
-        block.conv2.weight.set_(block.conv2.weight.detach()[:,:n_keep_mid]) #fixing number of inchannels due to previous channel change
+        block.conv2.weight.set_(block.conv2.weight.detach()[:,:n_keep]) #fixing number of inchannels due to previous channel change
 
-        block.conv2.weight.set_(block.conv2.weight.detach()[:n_keep_mid])
-        block.bn2.weight.set_(block.bn2.weight.detach()[:n_keep_mid])
-        block.bn2.bias.set_(block.bn2.bias.detach()[:n_keep_mid])
-        block.bn2.running_mean.set_(block.bn2.running_mean.detach()[:n_keep_mid])
-        block.bn2.running_var.set_(block.bn2.running_var.detach()[:n_keep_mid])
+        block.conv2.weight.set_(block.conv2.weight.detach()[:n_keep])
+        block.bn2.weight.set_(block.bn2.weight.detach()[:n_keep])
+        block.bn2.bias.set_(block.bn2.bias.detach()[:n_keep])
+        block.bn2.running_mean.set_(block.bn2.running_mean.detach()[:n_keep])
+        block.bn2.running_var.set_(block.bn2.running_var.detach()[:n_keep])
 
-        block.conv3.weight.set_(block.conv3.weight.detach()[:,:n_keep_mid]) #fixing number of inchannels due to previous channel change
-        return block.conv3.out_channels
+        block.conv3.weight.set_(block.conv3.weight.detach()[:,:n_keep]) #fixing number of inchannels due to previous channel change
+        
+        block.conv3.weight.set_(block.conv3.weight.detach()[:n_keep*block.expansion])
+        block.bn3.weight.set_(block.bn3.weight.detach()[:n_keep*block.expansion])
+        block.bn3.bias.set_(block.bn3.bias.detach()[:n_keep*block.expansion])
+        block.bn3.running_mean.set_(block.bn3.running_mean.detach()[:n_keep*block.expansion])
+        block.bn3.running_var.set_(block.bn3.running_var.detach()[:n_keep*block.expansion])
+        if block.shortcut:
+            block.shortcut[0].weight.set_(block.shortcut[0].weight.detach()[:n_keep*block.expansion]) #fixing number of inchannels due to previous channel change
+            block.shortcut[1].weight.set_(block.shortcut[1].weight.detach()[:n_keep*block.expansion])
+            block.shortcut[1].bias.set_(block.shortcut[1].bias.detach()[:n_keep*block.expansion])
+            block.shortcut[1].running_mean.set_(block.shortcut[1].running_mean.detach()[:n_keep*block.expansion])
+            block.shortcut[1].running_var.set_(block.shortcut[1].running_var.detach()[:n_keep*block.expansion])
+        return n_keep*block.expansion #we will need n_keep to fix next conv' inchannels fixing
 
     assert isinstance(prune_ratios, (float, dict,list))
     # note that for the ratios, it affects the previous conv output and next
