@@ -13,7 +13,7 @@ def main():
     basedir='PruningNAS'
     path='./dataset/cifar10'
     select_model='Resnet-18'
-    prune_type='FGP'
+    prune_type='CP'
     #model_path=f'{basedir}/checkpoint/vgg_mrl_99.51375579833984.pth'
     model_path=f'{basedir}/checkpoint/{select_model}/Resnet-18_cifar_95.659996.pth'
     # Load the saved state_dict correctly

@@ -147,7 +147,7 @@ def TrainingPrunned(pruned_model,train_dataloader,test_dataloader,criterion, opt
         if is_best:
             best_accuracy = test_acc
             best_model=copy.deepcopy(pruned_model)
-        print(f'    Epoch {epoch+1} Test accuracy:{test_acc:.2f}% / Best Accuracy: {best_accuracy:.2f}%, train loss: {scheduler.get_last_lr()}')
+        print(f'    Epoch {epoch+1} Test accuracy:{test_acc:.2f}% / Best Accuracy: {best_accuracy:.2f}%, train loss: {optimizer.last}')
         if scheduler is not None:
           scheduler.step()
 

@@ -50,15 +50,15 @@ def main():
         exit
 
     # ########load from path only for retraining #####
-    model_path=r'PruningNAS\checkpoint\Resnet-18\FGP\Resnet-18_cifar_FGP_93.68000030517578.pth'
+    model_path=r'PruningNAS\checkpoint\Resnet-18\Resnet-18_cifar_95.049995.pth'
     model = torch.load(model_path, map_location=torch.device(device),weights_only=False)  # Use 'cpu' if necessary
     ################################################
     model = model.to(device)
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = SGD( model.parameters(), lr=0.003,  momentum=0.9,  weight_decay=5e-4,)
+    optimizer = SGD( model.parameters(), lr=0.1,  momentum=0.9,  weight_decay=5e-4,)
 
-    num_epochs = 40
+    num_epochs =300
     scheduler = CosineAnnealingLR(optimizer, num_epochs)
     # scheduler = CosineAnnealingLR(optimizer, T_max=50)
 

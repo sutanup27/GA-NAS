@@ -33,15 +33,16 @@ num_epochs=20
 
 
 ## Parameter configuration for Resnet-18:
-- num_epochs=200
+- num_epochs=300
 - optimizer = SGD( model.parameters(), lr=0.1,  momentum=0.9,  weight_decay=5e-4,)
 - scheduler = CosineAnnealingLR(optimizer, num_epochs)
+- expected accuracy = 95.5+
 
 ### FGP:
-epoch=20
-- optimizer = SGD( model.parameters(), lr=0.001,  momentum=0.9,  weight_decay=5e-4,) 
-<!-- optimizer = SGD( model.parameters(), lr=0.0001,  momentum=0.9,  weight_decay=5e-4,)  -->
+epoch=200
+- optimizer = SGD( model.parameters(), lr=0.1,  momentum=0.9,  weight_decay=5e-4,) 
 - scheduler = CosineAnnealingLR(optimizer, num_epochs)
+- expected accuracy = 95+
 
 - sparsity_dict =  {
     "conv1": 0.8,
@@ -76,18 +77,28 @@ epoch=20
 }
 
 
+### FGP:
+epoch=200
+- optimizer = SGD( model.parameters(), lr=0.1,  momentum=0.9,  weight_decay=5e-4,) 
+- scheduler = CosineAnnealingLR(optimizer, num_epochs)
+- expected accuracy = 95+
+
 
 ### CP
-- sparsity_dict = {      #for F
-'conv1':0.3,
-'layer1.0.conv1':0.3,
-'layer1.1.conv1':0.2,
-'layer2.0.conv1':0.3,
-'layer2.1.conv1':0.3,
-'layer3.0.conv1':0.4,
-'layer3.1.conv1':0.3,
-'layer4.0.conv1':0.7,
-'layer4.1.conv1':0.8,
+-    sparsity_dict  = {
+    "conv1": 0.3,
+
+    "layer1.0": 0.3,
+    "layer1.1": 0.2,
+
+    "layer2.0": 0.3,
+    "layer2.1": 0.4,
+
+    "layer3.0": 0.3,
+    "layer3.1": 0.5,
+
+    "layer4.0": 0.6,
+    "layer4.1": 0.7
 }
 
 

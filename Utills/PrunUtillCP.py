@@ -116,35 +116,37 @@ def apply_channel_sorting_on_resnet(model):
 @torch.no_grad()
 def apply_channel_sorting_on_densenet(model):
     model = copy.deepcopy(model)  # do not modify the original model
-    # fetch all the conv and bn layers from the features
-    all_convs = [layer for layer in model.features.modules() if isinstance(layer, nn.Conv2d)]
-    all_bns = [layer for layer in model.features.modules() if isinstance(layer, nn.BatchNorm2d)]
-    
-    # iterate through conv layers (excluding the last one)
+    # fetch all the conv and bn layers from the backbone
+    all_convs = [ layer for layer in model.named_modules() if isinstance(layer, nn.Conv2d)]
+    all_bns = [ layer for layer in model.named_modules() if isinstance(layer, nn.BatchNorm2d)]
+    # iterate through conv layers
     for i_conv in range(len(all_convs) - 1):
+        # each channel sorting index, we need to apply it to:
+        # - the output dimension of the previous conv
+        # - the previous BN layer
+        # - the input dimension of the next conv (we compute importance here)
         prev_conv = all_convs[i_conv]
         prev_bn = all_bns[i_conv]
         next_conv = all_convs[i_conv + 1]
-        
-        # compute importance based on input channels of next conv
+        # note that we always compute the importance according to input channels
         importance = get_input_channel_importance(next_conv.weight)
         # sorting from large to small
         sort_idx = torch.argsort(importance, descending=True)
 
-        # apply to previous conv output and its following bn
-        prev_conv.weight.copy_(torch.index_select(
-            prev_conv.weight.detach(), 0, sort_idx))
-        
+        # apply to previous conv and its following bn
+        prev_conv.weight.copy_(torch.index_select(prev_conv.weight.detach(), 0, sort_idx))
+
         for tensor_name in ['weight', 'bias', 'running_mean', 'running_var']:
             tensor_to_apply = getattr(prev_bn, tensor_name)
             tensor_to_apply.copy_(
                 torch.index_select(tensor_to_apply.detach(), 0, sort_idx)
             )
 
-        # apply to the next conv input channels
+        # apply to the next conv input (hint: one line of code)
+        ##################### YOUR CODE STARTS HERE #####################
         next_conv.weight.copy_(torch.index_select(
             next_conv.weight.detach(), 1, sort_idx))
-    
+        ##################### YOUR CODE ENDS HERE #####################
     return model
 
 def apply_channel_sorting(model,model_type):
