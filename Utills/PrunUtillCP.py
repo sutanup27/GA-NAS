@@ -35,6 +35,9 @@ def get_input_channel_importance(weight):
 def count_resnet_blocks(model):
     return len(model.layer1)+len(model.layer2)+len(model.layer3)+len(model.layer4)
 
+def count_densenet_blocks(model):
+    return sum(model.block_config)+1
+
 def count_prunable_layers(model,model_type='Vgg-16'):
     if model_type=='Vgg-16':
         return len([m for m in model.backbone if isinstance(m, nn.Conv2d)])

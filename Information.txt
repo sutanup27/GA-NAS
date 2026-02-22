@@ -36,7 +36,7 @@ num_epochs=20
 - num_epochs=300
 - optimizer = SGD( model.parameters(), lr=0.1,  momentum=0.9,  weight_decay=5e-4,)
 - scheduler = CosineAnnealingLR(optimizer, num_epochs)
-- expected accuracy = 95.5+
+- expected accuracy = 95.6+
 
 ### FGP:
 epoch=200
@@ -103,15 +103,17 @@ epoch=200
 
 
 ## Parameter configuration for Resnet-34:
-- num_epochs=200
+- num_epochs=300
 - optimizer = SGD( model.parameters(), lr=0.1,  momentum=0.9,  weight_decay=5e-4,)
 - scheduler = CosineAnnealingLR(optimizer, num_epochs)
+- expected accuracy = 95.7+
 
 ### FGP:
-epoch=20
-- optimizer = SGD( model.parameters(), lr=0.001,  momentum=0.9,  weight_decay=5e-4,) 
+epoch=200
+- optimizer = SGD( model.parameters(), lr=0.1,  momentum=0.9,  weight_decay=5e-4,) 
 <!-- optimizer = SGD( model.parameters(), lr=0.0001,  momentum=0.9,  weight_decay=5e-4,)  -->
 - scheduler = CosineAnnealingLR(optimizer, num_epochs)
+- expected accuracy = 95.5+
 
 - sparsity_dict ={ 
 'conv1':0.90,

@@ -24,7 +24,7 @@ def main():
     basedir='PruningNAS'
     path='./dataset/cifar10'
     select_model='Resnet-18'
-    pruning_type='CP'
+    pruning_type='FGP'
     #model_path='./checkpoint/vgg_mrl_99.51375579833984.pth'
     model_path=r'PruningNAS\checkpoint\Resnet-18\Resnet-18_cifar_95.659996.pth'
     # Load the saved state_dict correctly
@@ -33,22 +33,36 @@ def main():
     model.to(device)
 
     sparsity_dict  = {
-    "conv1": 0.3,
+    "conv1": 0.8,
 
-    "layer1.0": 0.3,
-    "layer1.1": 0.2,
+    "layer1.0.conv1": 0.9,
+    "layer1.0.conv2": 0.9,
+    "layer1.1.conv1": 0.9,
+    "layer1.1.conv2": 0.9,
 
-    "layer2.0": 0.3,
-    "layer2.1": 0.4,
+    "layer2.0.conv1": 0.7,
+    "layer2.0.conv2": 0.7,
+    "layer2.0.shortcut.0": 0.9,
 
-    "layer3.0": 0.3,
-    "layer3.1": 0.5,
+    "layer2.1.conv1": 0.8,
+    "layer2.1.conv2": 0.9,
 
-    "layer4.0": 0.6,
-    "layer4.1": 0.7
+    "layer3.0.conv1": 0.7,
+    "layer3.0.conv2": 0.7,
+    "layer3.0.shortcut.0": 0.9,
+
+    "layer3.1.conv1": 0.7,
+    "layer3.1.conv2": 0.9,
+
+    "layer4.0.conv1": 0.9,
+    "layer4.0.conv2": 0.9,
+    "layer4.0.shortcut.0": 0.9,
+
+    "layer4.1.conv1": 0.9,
+    "layer4.1.conv2": 0.9,
+
+    "fc": 0.9
 }
-
-
 
     # sparsity_dict ={ 
     # 'conv1':0.80,
@@ -116,12 +130,12 @@ def main():
     sparse_model_accuracy,_ = evaluate(pruned_model, test_dataloader)
     print(f"Sparse model has accuracy={sparse_model_accuracy:.2f}% before fintuning")
 
-    num_finetune_epochs = 200
-    optimizer = torch.optim.SGD(pruned_model.parameters(), lr=0.1, momentum=0.9, weight_decay=1e-4)
+    num_finetune_epochs = 300
+    optimizer = torch.optim.SGD(pruned_model.parameters(), lr=0.001, momentum=0.9, weight_decay=1e-4)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, num_finetune_epochs)
     criterion = nn.CrossEntropyLoss()
 
-    pruned_model_accuracy,best_pruned_model,accuracies,train_losses,test_losses=TrainingPrunned(pruned_model,train_dataloader,test_dataloader,criterion, optimizer, pruner,scheduler=None,num_finetune_epochs=num_finetune_epochs,isCallback=isCallback)
+    pruned_model_accuracy,best_pruned_model,accuracies,train_losses,test_losses=TrainingPrunned(pruned_model,train_dataloader,test_dataloader,criterion, optimizer, pruner,scheduler=scheduler,num_finetune_epochs=num_finetune_epochs,isCallback=isCallback)
 
     torch.save(best_pruned_model, f'{basedir}/checkpoint/{select_model}/{pruning_type}/{select_model}_cifar_{pruning_type}_{pruned_model_accuracy}.pth')
 

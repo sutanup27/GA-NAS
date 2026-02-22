@@ -12,10 +12,10 @@ def main():
     # Initialize the model
     basedir='PruningNAS'
     path='./dataset/cifar10'
-    select_model='Resnet-18'
+    select_model='Resnet-34'
     prune_type='CP'
     #model_path=f'{basedir}/checkpoint/vgg_mrl_99.51375579833984.pth'
-    model_path=f'{basedir}/checkpoint/{select_model}/Resnet-18_cifar_95.659996.pth'
+    model_path=r'PruningNAS\checkpoint\Resnet-34\Resnet-34_cifar_95.720001.pth'
     # Load the saved state_dict correctly
     model = torch.load(model_path, map_location=torch.device(device),weights_only=False)  # Use 'cpu' if necessary
     model.to(device)
