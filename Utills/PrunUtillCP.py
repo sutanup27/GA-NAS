@@ -264,9 +264,8 @@ def channel_prune_resnet(model, prune_ratios: Union[float, dict,list]):
         block.bn2.running_mean.set_(block.bn2.running_mean.detach()[:n_keep])
         block.bn2.running_var.set_(block.bn2.running_var.detach()[:n_keep])
 
-        block.conv3.weight.set_(block.conv3.weight.detach()[:,:n_keep]) #fixing number of inchannels due to previous channel change
+        block.conv3.weight.set_(block.conv3.weight.detach()[:n_keep*block.expansion,:n_keep]) #fixing number of inchannels due to previous channel change
         
-        block.conv3.weight.set_(block.conv3.weight.detach()[:n_keep*block.expansion])
         block.bn3.weight.set_(block.bn3.weight.detach()[:n_keep*block.expansion])
         block.bn3.bias.set_(block.bn3.bias.detach()[:n_keep*block.expansion])
         block.bn3.running_mean.set_(block.bn3.running_mean.detach()[:n_keep*block.expansion])
