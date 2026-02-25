@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -25,10 +26,17 @@ class Bottleneck(nn.Module):
         if self.shortcut is not None:
             identity = self.shortcut(x)
 
-        print(f"Identity shape: {identity.shape}, Out shape: {out.shape}")
-        print(f"conv1 weight shape: {self.conv1.weight.shape}, conv2 weight shape: {self.conv2.weight.shape}, conv3 weight shape: {self.conv3.weight.shape}")
-        print(f"shortcut weight shape: {self.shortcut[0].weight.shape if self.shortcut is not None else 'N/A'}")
+        ################# This part is adjusted for channel pruning #############
+        if out.shape!=identity.shape:
+            if out.size(1)<identity.size(1):
+                identity=identity[:,:out.size(1),:,:]
+            else:
+                padded = torch.zeros_like(out)
+                padded[:,:identity.size(1),:,:]=identity
+                identity=padded
+        #########################################################################
         out += identity
+
         return self.relu(out)
     
 class ResNetBN(nn.Module):

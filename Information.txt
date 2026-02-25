@@ -115,70 +115,105 @@ epoch=200
 - scheduler = CosineAnnealingLR(optimizer, num_epochs)
 - expected accuracy = 95.5+
 
-- sparsity_dict ={ 
-'conv1':0.90,
-'layer1.0.conv1':0.90,
-'layer1.0.conv2':0.90,
-'layer1.1.conv1':0.90,
-'layer1.1.conv2':0.90,
-'layer1.2.conv1':0.90,
-'layer1.2.conv2':0.90,
-'layer2.0.conv1':0.90,
-'layer2.0.conv2':0.90,
-'layer2.0.shortcut.0':0.90,
-'layer2.1.conv1':0.90,
-'layer2.1.conv2':0.90,
-'layer2.2.conv1':0.90,
-'layer2.2.conv2':0.90,
-'layer2.3.conv1':0.90,
-'layer2.3.conv2':0.90,
-'layer3.0.conv1':0.90,
-'layer3.0.conv2':0.90,
-'layer3.0.shortcut.0':0.90,
-'layer3.1.conv1':0.90,
-'layer3.1.conv2':0.90,
-'layer3.2.conv1':0.90,
-'layer3.2.conv2':0.90,
-'layer3.3.conv1':0.90,
-'layer3.3.conv2':0.90,
-'layer3.4.conv1':0.90,
-'layer3.4.conv2':0.90,
-'layer3.5.conv1':0.90,
-'layer3.5.conv2':0.90,
-'layer4.0.conv1':0.90,
-'layer4.0.conv2':0.90,
-'layer4.0.shortcut.0':0.90,
-'layer4.1.conv1':0.90,
-'layer4.1.conv2':0.90,
-'layer4.2.conv1':0.90,
-'layer4.2.conv2':0.90,
-'fc':0.90,}
+- sparsity_dict ={
+    "conv1": 0.8,
+
+    "layer1.0.conv1": 0.9,
+    "layer1.0.conv2": 0.9,
+    "layer1.0.conv3": 0.9,
+    "layer1.0.shortcut.0": 0.9,
+
+    "layer1.1.conv1": 0.9,
+    "layer1.1.conv2": 0.9,
+    "layer1.1.conv3": 0.9,
+
+    "layer1.2.conv1": 0.9,
+    "layer1.2.conv2": 0.9,
+    "layer1.2.conv3": 0.9,
+
+    "layer2.0.conv1": 0.9,
+    "layer2.0.conv2": 0.8,
+    "layer2.0.conv3": 0.9,
+    "layer2.0.shortcut.0": 0.9,
+
+    "layer2.1.conv1": 0.9,
+    "layer2.1.conv2": 0.9,
+    "layer2.1.conv3": 0.9,
+
+    "layer2.2.conv1": 0.9,
+    "layer2.2.conv2": 0.9,
+    "layer2.2.conv3": 0.9,
+
+    "layer2.3.conv1": 0.9,
+    "layer2.3.conv2": 0.9,
+    "layer2.3.conv3": 0.9,
+
+    "layer3.0.conv1": 0.8,
+    "layer3.0.conv2": 0.9,
+    "layer3.0.conv3": 0.9,
+    "layer3.0.shortcut.0": 0.9,
+
+    "layer3.1.conv1": 0.9,
+    "layer3.1.conv2": 0.9,
+    "layer3.1.conv3": 0.9,
+
+    "layer3.2.conv1": 0.9,
+    "layer3.2.conv2": 0.9,
+    "layer3.2.conv3": 0.9,
+
+    "layer3.3.conv1": 0.9,
+    "layer3.3.conv2": 0.9,
+    "layer3.3.conv3": 0.9,
+
+    "layer3.4.conv1": 0.9,
+    "layer3.4.conv2": 0.9,
+    "layer3.4.conv3": 0.9,
+
+    "layer3.5.conv1": 0.9,
+    "layer3.5.conv2": 0.9,
+    "layer3.5.conv3": 0.9,
+
+    "layer4.0.conv1": 0.9,
+    "layer4.0.conv2": 0.9,
+    "layer4.0.conv3": 0.9,
+    "layer4.0.shortcut.0": 0.9,
+
+    "layer4.1.conv1": 0.9,
+    "layer4.1.conv2": 0.9,
+    "layer4.1.conv3": 0.9,
+
+    "layer4.2.conv1": 0.9,
+    "layer4.2.conv2": 0.9,
+    "layer4.2.conv3": 0.9,
+
+    "fc": 0.9
+}
 
 
 
 ### CP
-- sparsity_dict = {
+- sparsity_dict  = {
     "conv1": 0.3,
 
-    "layer1.0": 0.3,
+    "layer1.0": 0.4,
     "layer1.1": 0.3,
-    "layer1.2": 0.2,
+    "layer1.2": 0.4,
 
     "layer2.0": 0.2,
-    "layer2.1": 0.5,
-    "layer2.2": 0.5,
-    "layer2.3": 0.5,
+    "layer2.1": 0.2,
+    "layer2.2": 0.3,
+    "layer2.3": 0.3,
 
     "layer3.0": 0.4,
-    "layer3.1": 0.6,
-    "layer3.2": 0.6,
-    "layer3.3": 0.5,
-    "layer3.4": 0.6,
-    "layer3.5": 0.5,
+    "layer3.1": 0.5,
+    "layer3.2": 0.5,
+    "layer3.3": 0.4,
+    "layer3.4": 0.4,
+    "layer3.5": 0.4,
 
-    "layer4.0": 0.7,
-    "layer4.1": 0.9,
-    "layer4.2": 0.9
+    "layer4.0": 0.4,
+    "layer4.1": 0.6,
+    "layer4.2": 0.8
 }
 
 

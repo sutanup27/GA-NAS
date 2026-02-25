@@ -20,10 +20,13 @@ def main():
     model = torch.load(model_path, map_location=torch.device(device),weights_only=False)  # Use 'cpu' if necessary
     model.to(device)
 
+
     sparsities_path=f'{basedir}/checkpoint/{select_model}/{prune_type}/{select_model}_sparsities.pkl'
     accuracies_path=f'{basedir}/checkpoint/{select_model}/{prune_type}/{select_model}_accuracies.pkl'
 
     train_dataloader,test_dataloader=get_dataloaders(path )
+    dense_model_accuracy,_=evaluate(model,test_dataloader)
+    print(f"Original model accuracy: {dense_model_accuracy:.4f}")
     ############# calculate sparsities (optional) #############################################
 
     sparsities, accuracies,names = sensitivity_scan(
@@ -42,7 +45,6 @@ def main():
     with open(accuracies_path, "rb") as f:
         accuracies,names = pickle.load(f)
         
-    dense_model_accuracy,_=evaluate(model,test_dataloader)
 
     save_image_path1=f'{basedir}/checkpoint/{select_model}/{prune_type}/param_plot/{select_model}_paramplot_{prune_type}'
     save_image_path2=f'{basedir}/checkpoint/{select_model}/{prune_type}/sensitivity_curves/{select_model}_sensitivity_{prune_type}'
