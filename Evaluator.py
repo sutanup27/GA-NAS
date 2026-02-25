@@ -25,7 +25,7 @@ def main():
     path='./dataset/cifar10'
     # Initialize the model
 
-    model_path=r'PruningNAS\checkpoint\Resnet-34\CP\Resnet-34_cifar_CP_95.38999938964844.pth'
+    model_path=r'PruningNAS\checkpoint\Resnet-50\Resnet-50_cifar_95.750000.pth'
     # Load the saved state_dict correctly
     model = torch.load(model_path, map_location=torch.device(device), weights_only=False)  # Use 'cpu' if necessary
     model.to(device)

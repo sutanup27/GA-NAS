@@ -8,14 +8,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-# ---------------------------
-# Dense Layer
-# ---------------------------
 class DenseLayer(nn.Module):
-    def __init__(self, in_channels, growth_rate=32, bn_size=4, drop_rate=0.0):
+    def __init__(self, in_channels, growth_rate, bn_size=4, drop_rate=0.0):
         super().__init__()
-        
-        self.growth_rate=growth_rate
+        self.growth_rate = growth_rate
+
         self.norm1 = nn.BatchNorm2d(in_channels)
         self.relu1 = nn.ReLU(inplace=True)
         self.conv1 = nn.Conv2d(in_channels, bn_size * growth_rate,
@@ -43,15 +40,16 @@ class DenseLayer(nn.Module):
 # Dense Block
 # ---------------------------
 class DenseBlock(nn.Module):
-    def __init__(self, num_layers, in_channels):
+    def __init__(self, num_layers, in_channels, growth_rate):
         super().__init__()
+        self.growth_rate = growth_rate
         layers = []
         channels = in_channels
 
         for _ in range(num_layers):
-            layer = DenseLayer(channels)
+            layer = DenseLayer(channels, growth_rate)
             layers.append(layer)
-            channels += layer.growth_rate
+            channels += growth_rate
 
         self.block = nn.Sequential(*layers)
         self.out_channels = channels
@@ -84,12 +82,14 @@ class TransitionLayer(nn.Module):
 # ---------------------------
 class DenseNet(nn.Module):
     def __init__(self,
+                 growth_rate=32,
                  block_config=(6, 12, 24, 16),  # DenseNet-121
                  num_init_features=64,
                  classes=10):
 
         super().__init__()
-
+        self.growth_rate = growth_rate
+        self.block_config = block_config
         # initial convolution
         self.init_conv = nn.Sequential(
             nn.Conv2d(3, num_init_features, kernel_size=7, stride=2, padding=3, bias=False),
@@ -100,11 +100,10 @@ class DenseNet(nn.Module):
 
         channels = num_init_features
         self.blocks = nn.ModuleList()
-        self.block_config = block_config
-        
+
         # Dense blocks + transition layers
         for i, num_layers in enumerate(block_config):
-            dense_block = DenseBlock(num_layers, channels)
+            dense_block = DenseBlock(num_layers, channels, growth_rate)
             self.blocks.append(dense_block)
             channels = dense_block.out_channels
 
@@ -135,16 +134,15 @@ class DenseNet(nn.Module):
 # Factory functions
 # ---------------------------
 def DenseNet121(classes=10):
-    return DenseNet(block_config=(6, 12, 24, 16), classes=classes)
+    return DenseNet(growth_rate=32, block_config=(6, 12, 24, 16), classes=classes)
 
 
 def DenseNet169(classes=10):
-    return DenseNet( block_config=(6, 12, 32, 32), classes=classes)
+    return DenseNet(growth_rate=32, block_config=(6, 12, 32, 32), classes=classes)
 
 
 def DenseNet201(classes=10):
-    return DenseNet( block_config=(6, 12, 48, 32), classes=classes)
-
+    return DenseNet(growth_rate=32, block_config=(6, 12, 48, 32), classes=classes)
 
 
 

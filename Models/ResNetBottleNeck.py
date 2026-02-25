@@ -25,6 +25,9 @@ class Bottleneck(nn.Module):
         if self.shortcut is not None:
             identity = self.shortcut(x)
 
+        print(f"Identity shape: {identity.shape}, Out shape: {out.shape}")
+        print(f"conv1 weight shape: {self.conv1.weight.shape}, conv2 weight shape: {self.conv2.weight.shape}, conv3 weight shape: {self.conv3.weight.shape}")
+        print(f"shortcut weight shape: {self.shortcut[0].weight.shape if self.shortcut is not None else 'N/A'}")
         out += identity
         return self.relu(out)
     
