@@ -7,6 +7,8 @@ from torch.optim.lr_scheduler import *
 from torchvision.datasets import *
 from torchvision.transforms import *
 
+from PruningNAS.Models.DenseNet import DenseBlock, TransitionLayer
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def get_num_channels_to_keep(channels: int, prune_ratio: float) -> int:
@@ -35,8 +37,8 @@ def get_input_channel_importance(weight):
 def count_resnet_blocks(model):
     return len(model.layer1)+len(model.layer2)+len(model.layer3)+len(model.layer4)
 
-def count_densenet_blocks(model):
-    return sum(model.block_config)+1
+def count_densenet_prunable_layers(model):
+    return 1+sum(model.block_config)*2
 
 def count_prunable_layers(model,model_type='Vgg-16'):
     if model_type=='Vgg-16':
@@ -313,90 +315,93 @@ def channel_prune_resnet(model, prune_ratios: Union[float, dict,list]):
 
 @torch.no_grad()
 def channel_prune_densenet(model, prune_ratios: Union[float, dict, list]):
-    """Apply channel pruning to DenseNet model following ResNet-style block pruning.
-    Prunes each dense block and transition layer sequentially.
-    """
-    def prune_denselayer(layer, n_keep_in):
-        """Prune a single DenseLayer's input and internal conv1."""
-        # Prune norm1 and conv1 input channels
-        layer.norm1.weight.set_(layer.norm1.weight.detach()[:n_keep_in])
-        layer.norm1.bias.set_(layer.norm1.bias.detach()[:n_keep_in])
-        layer.norm1.running_mean.set_(layer.norm1.running_mean.detach()[:n_keep_in])
-        layer.norm1.running_var.set_(layer.norm1.running_var.detach()[:n_keep_in])
-        
-        layer.conv1.weight.set_(layer.conv1.weight.detach()[:, :n_keep_in])
-        
-        # conv1 output goes to norm2, keep all channels from conv1
-        # (conv1 -> norm2 -> relu2 -> conv2, growth_rate output to next layer)
+    """Prune DenseNet model by channel pruning with specified ratios."""
+    
+    def prune_dense_layer(layer, prune_ratio1, prune_ratio2, prev_n_keep):
+        """Prune a single DenseLayer in the DenseBlock."""
+        # Prune norm1 and conv1 based on input channels
+        layer.norm1.weight.set_(layer.norm1.weight.detach()[:prev_n_keep])
+        layer.norm1.bias.set_(layer.norm1.bias.detach()[:prev_n_keep])
+        layer.norm1.running_mean.set_(layer.norm1.running_mean.detach()[:prev_n_keep])
+        layer.norm1.running_var.set_(layer.norm1.running_var.detach()[:prev_n_keep])
+        layer.conv1.weight.set_(layer.conv1.weight.detach()[:, :prev_n_keep])
 
-    def prune_denseblock(block, n_keep_in, prune_ratio):
-        """Prune all layers in a DenseBlock sequentially."""
-        current_in = n_keep_in
-        for layer_name, layer in block.items():
-            prune_denselayer(layer, current_in)
-            # After each layer: input grows by growth_rate (concatenation)
-            current_in = n_keep_in + (int(layer_name.replace('denselayer', '')) * layer.conv2.out_channels)
-        return current_in
+        # Calculate kept channels after conv1
+        original_channels = layer.conv1.out_channels
+        n_keep_conv1 = get_num_channels_to_keep(original_channels, prune_ratio1)
+        layer.conv1.weight.set_(layer.conv1.weight.detach()[:n_keep_conv1])
 
-    def prune_transition(trans, n_keep_in, prune_ratio):
-        """Prune transition layer."""
-        trans.norm.weight.set_(trans.norm.weight.detach()[:n_keep_in])
-        trans.norm.bias.set_(trans.norm.bias.detach()[:n_keep_in])
-        trans.norm.running_mean.set_(trans.norm.running_mean.detach()[:n_keep_in])
-        trans.norm.running_var.set_(trans.norm.running_var.detach()[:n_keep_in])
+        # Prune norm2 and conv2 based on conv1 output
+        layer.norm2.weight.set_(layer.norm2.weight.detach()[:n_keep_conv1])
+        layer.norm2.bias.set_(layer.norm2.bias.detach()[:n_keep_conv1])
+        layer.norm2.running_mean.set_(layer.norm2.running_mean.detach()[:n_keep_conv1])
+        layer.norm2.running_var.set_(layer.norm2.running_var.detach()[:n_keep_conv1])
+        layer.conv2.weight.set_(layer.conv2.weight.detach()[:, :n_keep_conv1])
+
+        # Calculate kept channels after conv2 (output channels)
+        original_channels = layer.conv2.out_channels
+        n_keep_conv2 = get_num_channels_to_keep(original_channels, prune_ratio2)
+        layer.conv2.weight.set_(layer.conv2.weight.detach()[:n_keep_conv2])
         
-        out_channels = trans.conv.out_channels
-        n_keep = get_num_channels_to_keep(out_channels, prune_ratio)
-        trans.conv.weight.set_(trans.conv.weight.detach()[:n_keep, :n_keep_in])
-        
+        return prev_n_keep+n_keep_conv2
+
+    def prune_transition_layer(transition, prev_n_keep):
+        """Prune a transition layer."""
+        transition.norm.weight.set_(transition.norm.weight.detach()[:prev_n_keep])
+        transition.norm.bias.set_(transition.norm.bias.detach()[:prev_n_keep])
+        transition.norm.running_mean.set_(transition.norm.running_mean.detach()[:prev_n_keep])
+        transition.norm.running_var.set_(transition.norm.running_var.detach()[:prev_n_keep])
+        transition.conv.weight.set_(transition.conv.weight.detach()[:, :prev_n_keep])
+
+        # Calculate kept channels after transition
+        n_keep = prev_n_keep//2
+        transition.conv.weight.set_(transition.conv.weight.detach()[:n_keep])
+
         return n_keep
 
+    # Validate and normalize prune_ratios
     assert isinstance(prune_ratios, (float, dict, list))
-    
-    # Count pruning stages: conv0 + num_denseblocks + num_transitions
-    num_denseblocks = sum(1 for layer in model.features if layer.__class__.__name__ == "DenseBlock")
-    num_transitions = sum(1 for layer in model.features if layer.__class__.__name__ == "Transition")
-    expected_len = 1 + num_denseblocks + num_transitions
     
     if isinstance(prune_ratios, dict):
         prune_ratios = list(prune_ratios.values())
-        assert len(prune_ratios) == expected_len
     elif isinstance(prune_ratios, float):
-        prune_ratios = [prune_ratios] * expected_len
-    else:
-        assert len(prune_ratios) == expected_len
+        prune_ratios = [prune_ratios] * count_densenet_prunable_layers(model)
     
-    # Prune initial conv0
-    n_keep = get_num_channels_to_keep(model.features.conv0.out_channels, prune_ratios[0])
-    model.features.conv0.weight.set_(model.features.conv0.weight.detach()[:n_keep])
-    model.features.norm0.weight.set_(model.features.norm0.weight.detach()[:n_keep])
-    model.features.norm0.bias.set_(model.features.norm0.bias.detach()[:n_keep])
-    model.features.norm0.running_mean.set_(model.features.norm0.running_mean.detach()[:n_keep])
-    model.features.norm0.running_var.set_(model.features.norm0.running_var.detach()[:n_keep])
+    assert len(prune_ratios) == count_densenet_prunable_layers(model), \
+        f"Expected {count_densenet_prunable_layers(model)} prune ratios, got {len(prune_ratios)}"
+
+    # Prune initial convolution
+    original_channels = model.init_conv[0].out_channels
+    n_keep = get_num_channels_to_keep(original_channels, prune_ratios[0])
+    model.init_conv[0].weight.set_(model.init_conv[0].weight.detach()[:n_keep])
+    model.init_conv[1].weight.set_(model.init_conv[1].weight.detach()[:n_keep])
+    model.init_conv[1].bias.set_(model.init_conv[1].bias.detach()[:n_keep])
+    model.init_conv[1].running_mean.set_(model.init_conv[1].running_mean.detach()[:n_keep])
+    model.init_conv[1].running_var.set_(model.init_conv[1].running_var.detach()[:n_keep])
+
+    # Prune DenseBlocks and TransitionLayers
+    ratio_idx = 1  # Start from index 1 (init_conv uses index 0)
     
-    current_features = n_keep
-    stage_idx = 1
-    
-    # Iterate through denseblocks and transitions
-    for name, layer in model.features.named_children():
-        layer_type = layer.__class__.__name__
-        
-        if layer_type == "DenseBlock":
-            current_features = prune_denseblock(layer, current_features, prune_ratios[stage_idx])
-            stage_idx += 1
-        elif layer_type == "Transition":
-            current_features = prune_transition(layer, current_features, prune_ratios[stage_idx])
-            stage_idx += 1
-    
-    # Prune final batch norm and classifier
-    model.features.norm5.weight.set_(model.features.norm5.weight.detach()[:current_features])
-    model.features.norm5.bias.set_(model.features.norm5.bias.detach()[:current_features])
-    model.features.norm5.running_mean.set_(model.features.norm5.running_mean.detach()[:current_features])
-    model.features.norm5.running_var.set_(model.features.norm5.running_var.detach()[:current_features])
-    
-    model.classifier.weight.set_(model.classifier.weight.detach()[:, :current_features])
-    
+    for block in model.blocks:
+        if isinstance(block, DenseBlock):
+            for layer in block.block:
+                if ratio_idx + 1 < len(prune_ratios):
+                    n_keep = prune_dense_layer(layer, prune_ratios[ratio_idx], 
+                                               prune_ratios[ratio_idx + 1], n_keep)
+                    ratio_idx += 2
+        elif isinstance(block, TransitionLayer):
+            if ratio_idx < len(prune_ratios):
+                n_keep = prune_transition_layer(block, n_keep)
+
+    # Prune final fully connected layer
+    model.final_bn.weight.set_(model.final_bn.weight.detach()[:n_keep])
+    model.final_bn.bias.set_(model.final_bn.bias.detach()[:n_keep])
+    model.final_bn.running_mean.set_(model.final_bn.running_mean.detach()[:n_keep])
+    model.final_bn.running_var.set_(model.final_bn.running_var.detach()[:n_keep])
+    model.fc.weight.set_(model.fc.weight.detach()[:, :n_keep])
+
     return model
+
 
 def channel_prune(model, prune_ratio: Union[dict, float],model_type):
     if model_type=='Vgg-16':

@@ -12,7 +12,7 @@ def main():
     # Initialize the model
     basedir='PruningNAS'
     path='./dataset/cifar10'
-    select_model='Resnet-50'
+    select_model='DenseNet-169'
     prune_type='CP'
     #model_path=f'{basedir}/checkpoint/vgg_mrl_99.51375579833984.pth'
     model_path=r'PruningNAS\checkpoint\Resnet-50\Resnet-50_cifar_95.750000.pth'

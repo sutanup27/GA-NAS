@@ -92,10 +92,10 @@ class DenseNet(nn.Module):
         self.block_config = block_config
         # initial convolution
         self.init_conv = nn.Sequential(
-            nn.Conv2d(3, num_init_features, kernel_size=7, stride=2, padding=3, bias=False),
+            nn.Conv2d(3, num_init_features, kernel_size=3, stride=1, padding=1, bias=False),
             nn.BatchNorm2d(num_init_features),
             nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+            # nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
         )
 
         channels = num_init_features

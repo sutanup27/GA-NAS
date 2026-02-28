@@ -288,22 +288,26 @@ epoch=100
 
 
 ### CP
-- sparsity_dict = {
-        "conv1": 0.3,
-        "layer1.0": 0.4,
-        "layer1.1": 0.9,
-        "layer1.2": 0.3,
-        "layer2.0": 0.4,
-        "layer2.1": 0.9,
-        "layer2.2": 0.9,
-        "layer2.3": 0.8,
-        "layer3.0": 0.3,
-        "layer3.1": 0.9,
-        "layer3.2": 0.9,
-        "layer3.3": 0.8,
-        "layer3.4": 0.7,
-        "layer3.5": 0.6,
-        "layer4.0": 0.4,
-        "layer4.1": 0.9,
-        "layer4.2": 0.8
-    }
+sparsity_dict  = {
+    "conv1": 0.3,
+
+    "layer1.0": 0.4,
+    "layer1.1": 0.3,
+    "layer1.2": 0.4,
+
+    "layer2.0": 0.2,
+    "layer2.1": 0.2,
+    "layer2.2": 0.3,
+    "layer2.3": 0.3,
+
+    "layer3.0": 0.4,
+    "layer3.1": 0.5,
+    "layer3.2": 0.5,
+    "layer3.3": 0.4,
+    "layer3.4": 0.4,
+    "layer3.5": 0.4,
+
+    "layer4.0": 0.4,
+    "layer4.1": 0.6,
+    "layer4.2": 0.8
+}

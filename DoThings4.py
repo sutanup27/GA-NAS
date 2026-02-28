@@ -10,7 +10,7 @@ from PruningNAS.Models.DenseNet import DenseNet121
 from PruningNAS.Models.ResNetBasic import *
 from PruningNAS.Models.ResNetBottleNeck import *
 from PruningNAS.PruneEvaluator import load_and_print_accuracies
-from PruningNAS.Utills.PrunUtillCP import apply_channel_sorting_on_resnet, channel_prune_resnet
+from PruningNAS.Utills.PrunUtillCP import apply_channel_sorting_on_resnet, channel_prune_densenet, channel_prune_resnet
 from PruningNAS.Utills.TrainingModulesUtills import evaluate
 
 
@@ -20,12 +20,10 @@ def main():
     # Initialize the model
     basedir='PruningNAS'
     path='./dataset/cifar10'
-    select_model='Resnet-50'
-    prune_type='CP'
-    #model_path=f'{basedir}/checkpoint/vgg_mrl_99.51375579833984.pth'
-    model_path=r'PruningNAS\checkpoint\Resnet-50\Resnet-50_cifar_95.750000.pth'
-    # Load the saved state_dict correctly
-    model = torch.load(model_path, map_location=torch.device(device),weights_only=False)  # Use 'cpu' if necessary
+    model=DenseNet121(classes=10)
+    # model_path=r'PruningNAS\checkpoint\Resnet-50\Resnet-50_cifar_95.750000.pth'
+    # model = torch.load(model_path, map_location=torch.device(device),weights_only=False)  # Use 'cpu' if necessary
+
     model.to(device)
 
     train_dataloader,test_dataloader=get_dataloaders(path )
@@ -34,9 +32,9 @@ def main():
 
     sorted_model=copy.deepcopy(model)
     sorted_model = apply_channel_sorting_on_resnet(sorted_model)
+    sorted_model = channel_prune_densenet(sorted_model, 0.7)
     sorted_model.eval()  # Set to evaluation mode
-    # sorted_model = channel_prune_resnet(sorted_model,[0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
+    model.eval()  # Set to evaluation modeS
 
     dummy_input = torch.randn(20, 3, 32, 32).to(device)
 
