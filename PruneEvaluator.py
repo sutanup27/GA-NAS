@@ -12,10 +12,10 @@ def main():
     # Initialize the model
     basedir='PruningNAS'
     path='./dataset/cifar10'
-    select_model='DenseNet-169'
+    select_model='Densenet-121'
     prune_type='CP'
     #model_path=f'{basedir}/checkpoint/vgg_mrl_99.51375579833984.pth'
-    model_path=r'PruningNAS\checkpoint\Resnet-50\Resnet-50_cifar_95.750000.pth'
+    model_path=r'PruningNAS\checkpoint\Densenet-121\Densenet-121_cifar_95.769997.pth'
     # Load the saved state_dict correctly
     model = torch.load(model_path, map_location=torch.device(device),weights_only=False)  # Use 'cpu' if necessary
     model.to(device)
@@ -61,6 +61,8 @@ def load_and_print_accuracies(pickle_file):
     # Print accuracies with parameter names
     for i, name in enumerate(data[1]):
         print(f"{name}: {data[0][i]}")
+
+    print(f'length of data: {len(data[0])}, length of names: {len(data[1])}')
 
 
 if __name__ == '__main__':

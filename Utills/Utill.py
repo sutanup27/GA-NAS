@@ -9,7 +9,9 @@ from torch.optim import *
 from torch.optim.lr_scheduler import *
 from torchvision.datasets import *
 from torchvision.transforms import *
-from .PrunUtillCP import ChannelPrunner
+
+from PruningNAS.Models.DenseNet import DenseBlock
+from .PrunUtillCP import ChannelPrunner, count_densenet_prunable_layers
 from .PrunUtillFGP import fine_grained_prune
 from ..Models.ResNetBasic import ResNetBasic
 from .TrainingModulesUtills import evaluate
@@ -57,20 +59,27 @@ def get_labels_preds(model, dataloader,criterion):
 
   return all_labels, all_preds, all_outputs, loss
 
-def get_prunable_weights(model,select_model):
+def get_prunable_weights(model):
     prunable_weights=[]
-    if select_model[:6]=='Resnet':
+    if 'resnet' in model.__class__.__name__.lower():
         prunable_weights.append(('conv1',model.conv1))
         for name, layer in model.named_children():
             if isinstance(layer,nn.Sequential):
                 for sub_name, sub_layer in layer.named_children():
                     prunable_weights.append((name+'.'+sub_name, sub_layer))
-    elif select_model=='Vgg-16':
+    elif 'vgg' in model.__class__.__name__.lower():
         for (name, param) in model.named_modules():
             if isinstance(param, nn.Conv2d):
                 prunable_weights.append((name, param))
+    elif 'densenet' in model.__class__.__name__.lower():
+        for name, module in model.named_modules():
+            if isinstance(module, torch.nn.Conv2d):
+                parent_name = name.rsplit(".", 1)[0] if "." in name else "<root>"
+                if parent_name[:-2] == 'blocks':
+                    continue
+                prunable_weights.append((name, module))
     else:
-        print('model_type doesn\'t exists')
+        print(f'model_type doesn\'t exists 3:{model.__class__.__name__}')
         exit(0)
     return prunable_weights
 
@@ -112,7 +121,7 @@ def sensitivity_scan_CP(model, dataloader, scan_step=0.1, scan_start=0.4, scan_e
     sparsities = np.arange(start=scan_start, stop=scan_end, step=scan_step)
     accuracies = []
     names=[]
-    prunable_weights=get_prunable_weights(model,select_model)
+    prunable_weights=get_prunable_weights(model)
     for i_layer, (name, param) in enumerate(prunable_weights):
         accuracy = []
         sparsity_dict=[0.0]*len(prunable_weights)

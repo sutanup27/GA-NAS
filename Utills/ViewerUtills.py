@@ -9,6 +9,8 @@ from torchvision.datasets import *
 from torchvision.transforms import *
 import matplotlib.image as mpimg
 
+from PruningNAS.Utills.Utill import get_prunable_weights
+
 
 def plot_accuracy(accs,titel_append='',save_path=None,):
     print(accs)
@@ -48,14 +50,20 @@ def plot_loss(train_losses, test_losses, titel_append='',save_path=None):
 
 def get_params(model,p_name):
     params=[]
-    for name, param in model.named_parameters():
-        if (p_name==name[:len(p_name)]) and (('conv' in name) or ('fc' in name) or ('shortcut.0' in name)):
-            params.append(param.detach().view(-1))
+    if model.__class__.__name__.lower() == 'densenet':
+        pw=get_prunable_weights(model)
+        for name, conv in pw:   
+            params.append(conv.weight.detach().view(-1))
+    else:
+        for name, param in model.named_parameters():
+            if (p_name==name[:len(p_name)]) and (('conv' in name) or ('fc' in name) or ('shortcut.0' in name)):
+                params.append(param.detach().view(-1))
     params=torch.cat(params)
     return params
 
 def plot_weight_distribution( model,names, bins=256, count_nonzero_only=False,save_path=None):
     # More precise control over layout
+
     for name in names:
         param_cpu = get_params(model,name).cpu()
         if count_nonzero_only:

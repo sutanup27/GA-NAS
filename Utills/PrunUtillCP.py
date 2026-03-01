@@ -155,14 +155,14 @@ def apply_channel_sorting_on_densenet(model):
     return model
 
 def apply_channel_sorting(model,model_type):
-    if model_type=='Vgg-16':
+    if model_type.lower()=='vgg-16':
         return apply_channel_sorting_on_vgg(model)
-    elif model_type[:6]=='Resnet':
+    elif model_type[:6].lower()=='resnet':
         return apply_channel_sorting_on_resnet(model)
-    elif model_type[:9]=='Densenet':
+    elif model_type[:8].lower()=='densenet':
         return apply_channel_sorting_on_densenet(model)
     else:
-        print('model_type doesn\'t exists')
+        print(f'model_type doesn\'t exists 1:{model_type}')
         exit(0)
 
 
@@ -404,14 +404,14 @@ def channel_prune_densenet(model, prune_ratios: Union[float, dict, list]):
 
 
 def channel_prune(model, prune_ratio: Union[dict, float],model_type):
-    if model_type=='Vgg-16':
+    if model_type.lower()=='vgg-16':
         return channel_prune_vgg(model, prune_ratio)
-    elif model_type[:6]=='Resnet':
+    elif model_type[:6].lower()=='resnet':
         return channel_prune_resnet(model, prune_ratio)
-    elif model_type[:9]=='Densenet':
+    elif model_type[:8].lower()=='densenet':
         return channel_prune_densenet(model, prune_ratio)        
     else:
-        print('model_type doesn\'t exists')
+        print(f'model_type doesn\'t exists 2:{model_type}')
         exit(0)
 
 def ChannelPrunner(model,channel_pruning_ratio,model_type):
