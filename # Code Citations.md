@@ -15243,7 +15243,7 @@ def apply_channel_sorting(model,model_type):
     elif model_type[:9]=='Densenet':
         return apply_channel_sorting_on_densenet(model)
     else:
-        print('model_type doesn\'t exists')
+        print(f'model_type doesn\'t exists:{model_type}')
         exit(0)
 
 

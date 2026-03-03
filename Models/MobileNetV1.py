@@ -32,7 +32,7 @@ class DepthwiseSeparableConv(nn.Module):
 # MobileNet V1
 # -----------------------------
 class MobileNetV1(nn.Module):
-    def __init__(self, num_classes=1000):
+    def __init__(self, classes=1000):
         super().__init__()
 
         self.model = nn.Sequential(
@@ -54,7 +54,7 @@ class MobileNetV1(nn.Module):
         )
 
         self.pool = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Linear(1024, num_classes)
+        self.fc = nn.Linear(1024, classes)
 
     def forward(self, x):
         x = self.model(x)
