@@ -7,6 +7,7 @@ from torch.optim.lr_scheduler import *
 from torchvision.datasets import *
 from torchvision.transforms import *
 
+from PruningNAS.Models.MobileNetV1 import *
 from PruningNAS.Models.DenseNet import DenseBlock, TransitionLayer
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -39,6 +40,13 @@ def count_resnet_blocks(model):
 
 def count_densenet_prunable_layers(model):
     return 1+sum(model.block_config)*2
+
+def count_mobilenet_blocks(model):
+    count=0
+    for layer in model.model:
+        if isinstance(layer, DepthwiseSeparableConv):
+            count=count+1
+    return count
 
 def count_prunable_layers(model,model_type='Vgg-16'):
     if model_type=='Vgg-16':
@@ -83,7 +91,7 @@ def apply_channel_sorting_on_vgg(model):
     return model
 
 @torch.no_grad()
-def apply_channel_sorting_on_resnet(model):
+def apply_channel_sorting_on(model):
     model = copy.deepcopy(model)  # do not modify the original model
     # fetch all the conv and bn layers from the backbone
     all_convs = [ layer for layer in model.named_modules() if isinstance(layer, nn.Conv2d)]
@@ -118,51 +126,15 @@ def apply_channel_sorting_on_resnet(model):
         ##################### YOUR CODE ENDS HERE #####################
     return model
 
-@torch.no_grad()
-def apply_channel_sorting_on_densenet(model):
-    model = copy.deepcopy(model)  # do not modify the original model
-    # fetch all the conv and bn layers from the backbone
-    all_convs = [ layer for layer in model.named_modules() if isinstance(layer, nn.Conv2d)]
-    all_bns = [ layer for layer in model.named_modules() if isinstance(layer, nn.BatchNorm2d)]
-    # iterate through conv layers
-    for i_conv in range(len(all_convs) - 1):
-        # each channel sorting index, we need to apply it to:
-        # - the output dimension of the previous conv
-        # - the previous BN layer
-        # - the input dimension of the next conv (we compute importance here)
-        prev_conv = all_convs[i_conv]
-        prev_bn = all_bns[i_conv]
-        next_conv = all_convs[i_conv + 1]
-        # note that we always compute the importance according to input channels
-        importance = get_input_channel_importance(next_conv.weight)
-        # sorting from large to small
-        sort_idx = torch.argsort(importance, descending=True)
 
-        # apply to previous conv and its following bn
-        prev_conv.weight.copy_(torch.index_select(prev_conv.weight.detach(), 0, sort_idx))
-
-        for tensor_name in ['weight', 'bias', 'running_mean', 'running_var']:
-            tensor_to_apply = getattr(prev_bn, tensor_name)
-            tensor_to_apply.copy_(
-                torch.index_select(tensor_to_apply.detach(), 0, sort_idx)
-            )
-
-        # apply to the next conv input (hint: one line of code)
-        ##################### YOUR CODE STARTS HERE #####################
-        next_conv.weight.copy_(torch.index_select(
-            next_conv.weight.detach(), 1, sort_idx))
-        ##################### YOUR CODE ENDS HERE #####################
-    return model
-
-def apply_channel_sorting(model,model_type):
-    if model_type.lower()=='vgg-16':
+def apply_channel_sorting(model):
+    model_name = model.__class__.__name__.lower()
+    if model_name[:3]=='vgg':
         return apply_channel_sorting_on_vgg(model)
-    elif model_type[:6].lower()=='resnet':
-        return apply_channel_sorting_on_resnet(model)
-    elif model_type[:8].lower()=='densenet':
-        return apply_channel_sorting_on_densenet(model)
+    elif model_name[:6]=='resnet' or model_name[:8]=='densenet' or model_name[:11]=='mobilenetv1':
+        return apply_channel_sorting_on(model)
     else:
-        print(f'model_type doesn\'t exists 1:{model_type}')
+        print(f'model_type doesn\'t exists 1:{model_name}')
         exit(0)
 
 
@@ -402,14 +374,64 @@ def channel_prune_densenet(model, prune_ratios: Union[float, dict, list]):
 
     return model
 
+def channel_prune_mobilenetv1(model, prune_ratios: Union[float, dict, list]):
+    def prune_dws_block(block, prune_ratios, prev_n_keep):
+        block.depthwise.weight.set_(block.depthwise.weight.detach()[:prev_n_keep]) #fixing number of inchannels due to previous channel change
+
+        block.depthwise.groups=prev_n_keep  # to handle depthwwise conv pruning
+        block.depthwise.weight.set_(block.depthwise.weight.detach()[:prev_n_keep])
+        block.bn1.weight.set_(block.bn1.weight.detach()[:prev_n_keep])
+        block.bn1.bias.set_(block.bn1.bias.detach()[:prev_n_keep])
+        block.bn1.running_mean.set_(block.bn1.running_mean.detach()[:prev_n_keep])
+        block.bn1.running_var.set_(block.bn1.running_var.detach()[:prev_n_keep])
+
+        block.pointwise.weight.set_(block.pointwise.weight.detach()[:,:prev_n_keep]) #fixing number of inchannels due to previous channel change
+        original_channels = block.pointwise.out_channels
+        n_keep = get_num_channels_to_keep(original_channels, prune_ratios)
+        block.pointwise.weight.set_(block.pointwise.weight.detach()[:n_keep])
+        block.bn2.weight.set_(block.bn2.weight.detach()[:n_keep])
+        block.bn2.bias.set_(block.bn2.bias.detach()[:n_keep])
+        block.bn2.running_mean.set_(block.bn2.running_mean.detach()[:n_keep])
+        block.bn2.running_var.set_(block.bn2.running_var.detach()[:n_keep])
+        
+        return n_keep #we will need n_keep to fix next conv' inchannels fixing
+    
+    assert isinstance(prune_ratios, (float, dict,list))
+    # note that for the ratios, it affects the previous conv output and next
+    # conv input, i.e., conv0 - ratio0 - conv1 - ratio1-...
+    if isinstance(prune_ratios, dict):
+        prune_ratios=list(prune_ratios.values())
+        assert len(prune_ratios) == count_mobilenet_blocks(model)+1
+    elif isinstance(prune_ratios, float):  # convert float to list
+        prune_ratios = [prune_ratios] * (count_mobilenet_blocks(model)+1)
+    else:
+        pass
+    original_channels=model.model[0].out_channels
+    n_keep = get_num_channels_to_keep(original_channels, prune_ratios[0])
+    model.model[0].weight.set_(model.model[0].weight.detach()[:n_keep])
+    model.model[1].weight.set_(model.model[1].weight.detach()[:n_keep])
+    model.model[1].bias.set_(model.model[1].bias.detach()[:n_keep])
+    model.model[1].running_mean.set_(model.model[1].running_mean.detach()[:n_keep])
+    model.model[1].running_var.set_(model.model[1].running_var.detach()[:n_keep])
+    i=1
+    for name, module in model.model.named_children():
+        if isinstance(module, DepthwiseSeparableConv):
+            n_keep=prune_dws_block(module, prune_ratios[i], n_keep)
+            print(module)
+            i=i+1
+    
+    model.fc.weight.set_(model.fc.weight.detach()[:,:n_keep]) #fixing number of inchannels due to previous channel change
+    return model
 
 def channel_prune(model, prune_ratio: Union[dict, float],model_type):
-    if model_type.lower()=='vgg-16':
+    if model_type[:3].lower()=='vgg':
         return channel_prune_vgg(model, prune_ratio)
     elif model_type[:6].lower()=='resnet':
         return channel_prune_resnet(model, prune_ratio)
     elif model_type[:8].lower()=='densenet':
         return channel_prune_densenet(model, prune_ratio)        
+    elif model_type[:11].lower()=='mobilenetv1':
+        return channel_prune_mobilenetv1(model, prune_ratio)        
     else:
         print(f'model_type doesn\'t exists 2:{model_type}')
         exit(0)

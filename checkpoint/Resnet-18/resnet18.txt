@@ -1,3 +1,75 @@
+
+
+## Parameter configuration for Resnet-18:
+- num_epochs=300
+- optimizer = SGD( model.parameters(), lr=0.1,  momentum=0.9,  weight_decay=5e-4,)
+- scheduler = CosineAnnealingLR(optimizer, num_epochs)
+- expected accuracy = 95.6+
+
+### FGP:
+epoch=200
+- optimizer = SGD( model.parameters(), lr=0.1,  momentum=0.9,  weight_decay=5e-4,) 
+- scheduler = CosineAnnealingLR(optimizer, num_epochs)
+- expected accuracy = 95+
+
+- sparsity_dict =  {
+    "conv1": 0.8,
+
+    "layer1.0.conv1": 0.9,
+    "layer1.0.conv2": 0.9,
+    "layer1.1.conv1": 0.9,
+    "layer1.1.conv2": 0.9,
+
+    "layer2.0.conv1": 0.7,
+    "layer2.0.conv2": 0.7,
+    "layer2.0.shortcut.0": 0.9,
+
+    "layer2.1.conv1": 0.8,
+    "layer2.1.conv2": 0.9,
+
+    "layer3.0.conv1": 0.7,
+    "layer3.0.conv2": 0.7,
+    "layer3.0.shortcut.0": 0.9,
+
+    "layer3.1.conv1": 0.7,
+    "layer3.1.conv2": 0.9,
+
+    "layer4.0.conv1": 0.9,
+    "layer4.0.conv2": 0.9,
+    "layer4.0.shortcut.0": 0.9,
+
+    "layer4.1.conv1": 0.9,
+    "layer4.1.conv2": 0.9,
+
+    "fc": 0.9
+}
+
+
+### FGP:
+epoch=200
+- optimizer = SGD( model.parameters(), lr=0.1,  momentum=0.9,  weight_decay=5e-4,) 
+- scheduler = CosineAnnealingLR(optimizer, num_epochs)
+- expected accuracy = 95+
+
+
+### CP
+-    sparsity_dict  = {
+    "conv1": 0.3,
+
+    "layer1.0": 0.3,
+    "layer1.1": 0.2,
+
+    "layer2.0": 0.3,
+    "layer2.1": 0.4,
+
+    "layer3.0": 0.3,
+    "layer3.1": 0.5,
+
+    "layer4.0": 0.6,
+    "layer4.1": 0.7
+}
+
+#################################################################################################################
 conv1.weight torch.Size([64, 3, 3, 3])
 bn1.weight torch.Size([64])
 bn1.bias torch.Size([64])

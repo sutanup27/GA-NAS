@@ -9,6 +9,9 @@ from torch.optim import *
 from torch.optim.lr_scheduler import *
 from torchvision.datasets import *
 from torchvision.transforms import *
+
+from PruningNAS.Models.MobileNetV1 import MobileNetV1
+from PruningNAS.Models.MobileNetV2 import MobileNetV2
 from .Models.ResNetBasic import *
 from .Models.ResNetBottleNeck import *
 from .Models.DenseNet import *
@@ -30,7 +33,7 @@ def main():
     classes=10
     train_dataloader, test_dataloader = get_dataloaders(path, batch_size=128)
 
-    select_model='Densenet-121'
+    select_model='MobilenetV1'
     if select_model=='Vgg-16':
         model=VGG(classes=classes)
     elif select_model=='Resnet-18':
@@ -45,20 +48,28 @@ def main():
         model = ResNet152(classes=classes)
     elif select_model=='Densenet-121':
         model = DenseNet121(classes=classes)
+    elif select_model=='Densenet-169':
+        model = DenseNet169(classes=classes)
+    elif select_model=='Densenet-201':
+        model = DenseNet201(classes=classes)
+    elif select_model=='MobilenetV1':
+        model = MobileNetV1(classes=classes)
+    elif select_model=='MobilenetV2':
+        model = MobileNetV2(classes=classes)
     else:
         print("Model does not exists")
         exit()
 
     # ########load from path only for retraining #####
-    model_path=r'PruningNAS\checkpoint\Densenet-121\Densenet-121_cifar_95.769997.pth'
-    model = torch.load(model_path, map_location=torch.device(device),weights_only=False)  # Use 'cpu' if necessary
+    # model_path=r'PruningNAS\checkpoint\MobilenetV1\MobilenetV1_cifar_85.909996.pth'
+    # model = torch.load(model_path, map_location=torch.device(device),weights_only=False)  # Use 'cpu' if necessary
     # ################################################
     model = model.to(device)
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = SGD( model.parameters(), lr=0.00005,  momentum=0.9,  weight_decay=5e-4,)
+    optimizer = SGD( model.parameters(), lr=0.01,  momentum=0.9,  weight_decay=5e-4,)
 
-    num_epochs = 100
+    num_epochs = 300
     scheduler = CosineAnnealingLR(optimizer, num_epochs)
     # scheduler = CosineAnnealingLR(optimizer, T_max=50)
 

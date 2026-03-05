@@ -50,6 +50,13 @@ def fine_grained_prune(tensor: torch.Tensor, sparsity : float, prune_type="magni
         print("Wrong prune type is passed")
         return tensor
         
+def get_sparsity_dict_template_FGP(model,value=0.9):
+    sparsity_dict = dict()
+    for name, param in model.named_modules():
+        if isinstance(param, nn.Conv2d) or isinstance(param, nn.Linear): # we only prune conv and fc weights
+            sparsity_dict[name] = value   # Example: set all layers to 90% sparsity, you can customize this based on layer importance or other criteria
+    return sparsity_dict
+
 class FineGrainedPruner:
     def __init__(self, model, sparsity_dict):
         self.masks = FineGrainedPruner.prune(model, sparsity_dict)
@@ -68,4 +75,6 @@ class FineGrainedPruner:
             if isinstance(param, nn.Conv2d) or isinstance(param, nn.Linear): # we only prune conv and fc weights
                 masks[name] = fine_grained_prune(param.weight, sparsity_dict[name],prune_type="magnitude_based")
         return masks
+ 
+
  

@@ -1,16 +1,16 @@
 import copy
 from multiprocessing.dummy import freeze_support
 import pickle
-from pyexpat import model
 
 import torch
 
 from PruningNAS.DataProcess.DataPreprocessing import get_dataloaders
 from PruningNAS.Models.DenseNet import DenseNet121
+from PruningNAS.Models.MobileNetV1 import MobileNetV1
 from PruningNAS.Models.ResNetBasic import *
 from PruningNAS.Models.ResNetBottleNeck import *
 from PruningNAS.PruneEvaluator import load_and_print_accuracies
-from PruningNAS.Utills.PrunUtillCP import apply_channel_sorting_on_resnet, channel_prune_densenet, channel_prune_resnet
+from PruningNAS.Utills.PrunUtillCP import apply_channel_sorting_on, channel_prune_densenet, channel_prune_resnet
 from PruningNAS.Utills.TrainingModulesUtills import evaluate
 
 
@@ -20,9 +20,9 @@ def main():
     # Initialize the model
     basedir='PruningNAS'
     path='./dataset/cifar10'
-    model=DenseNet121(classes=10)
-    model_path=r'PruningNAS\checkpoint\Densenet-121\Densenet-121_cifar_95.769997.pth'
-    model = torch.load(model_path, map_location=torch.device(device),weights_only=False)  # Use 'cpu' if necessary
+    model=MobileNetV1(classes=10)
+    # model_path=r'PruningNAS\checkpoint\Densenet-121\Densenet-121_cifar_95.769997.pth'
+    # model = torch.load(model_path, map_location=torch.device(device),weights_only=False)  # Use 'cpu' if necessary
 
     model.to(device)
 
@@ -31,8 +31,8 @@ def main():
     print(f"Original model accuracy: {dense_model_accuracy:.4f}")
 
     sorted_model=copy.deepcopy(model)
-    sorted_model = apply_channel_sorting_on_resnet(sorted_model)
-    pr=[0.00,0.0,0.1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]
+    sorted_model = apply_channel_sorting_on(sorted_model)
+    # pr=[0.00,0.0,0.1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]
     sorted_model = channel_prune_densenet(sorted_model, pr)
 
     sorted_model.eval()  # Set to evaluation mode

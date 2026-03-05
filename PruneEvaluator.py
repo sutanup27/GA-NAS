@@ -12,10 +12,10 @@ def main():
     # Initialize the model
     basedir='PruningNAS'
     path='./dataset/cifar10'
-    select_model='Densenet-121'
-    prune_type='CP'
+    select_model='MobilenetV1'
+    prune_type='FGP'
     #model_path=f'{basedir}/checkpoint/vgg_mrl_99.51375579833984.pth'
-    model_path=r'PruningNAS\checkpoint\Densenet-121\Densenet-121_cifar_95.769997.pth'
+    model_path=r'PruningNAS\checkpoint\MobilenetV1\MobilenetV1_cifar_94.129997.pth'
     # Load the saved state_dict correctly
     model = torch.load(model_path, map_location=torch.device(device),weights_only=False)  # Use 'cpu' if necessary
     model.to(device)
@@ -29,14 +29,14 @@ def main():
     print(f"Original model accuracy: {dense_model_accuracy:.4f}")
     ############# calculate sparsities (optional) #############################################
 
-    sparsities, accuracies,names = sensitivity_scan(
-    model, test_dataloader, scan_step=0.1, scan_start=0.1, scan_end=1.0,prune_type=prune_type,select_model=select_model)
+    # sparsities, accuracies,names = sensitivity_scan(
+    # model, test_dataloader, scan_step=0.1, scan_start=0.1, scan_end=1.0,prune_type=prune_type,select_model=select_model)
 
-    with open(sparsities_path, "wb") as f:
-        pickle.dump(sparsities, f)
+    # with open(sparsities_path, "wb") as f:
+    #     pickle.dump(sparsities, f)
 
-    with open(accuracies_path, "wb") as f:
-        pickle.dump((accuracies,names), f)
+    # with open(accuracies_path, "wb") as f:
+    #     pickle.dump((accuracies,names), f)
 
     ############################################################################################
     with open(sparsities_path, "rb") as f:
@@ -46,9 +46,9 @@ def main():
         accuracies,names = pickle.load(f)
         
 
-    save_image_path1=f'{basedir}/checkpoint/{select_model}/{prune_type}/param_plot/{select_model}_paramplot_{prune_type}'
+    # save_image_path1=f'{basedir}/checkpoint/{select_model}/{prune_type}/param_plot/{select_model}_paramplot_{prune_type}'
     save_image_path2=f'{basedir}/checkpoint/{select_model}/{prune_type}/sensitivity_curves/{select_model}_sensitivity_{prune_type}'
-    plot_weight_distribution(model,names,save_path=save_image_path1)
+    # plot_weight_distribution(model,names,save_path=save_image_path1)
     plot_sensitivity_scan( names, sparsities, accuracies, dense_model_accuracy,save_image_path2)
     accumulate_plot_figures(f'{basedir}/checkpoint/{select_model}/{prune_type}/sensitivity_curves')
 

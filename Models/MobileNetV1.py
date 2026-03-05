@@ -36,20 +36,21 @@ class MobileNetV1(nn.Module):
         super().__init__()
 
         self.model = nn.Sequential(
-            nn.Conv2d(3, 32, 3, stride=2, padding=1, bias=False),
+            # Changed stride=2 to stride=1 for CIFAR-10's small 32x32 images
+            nn.Conv2d(3, 32, 3, stride=1, padding=1, bias=False),
             nn.BatchNorm2d(32),
             nn.ReLU(inplace=True),
 
             DepthwiseSeparableConv(32, 64, 1),
-            DepthwiseSeparableConv(64, 128, 2),
+            DepthwiseSeparableConv(64, 128, 1),  # Changed stride=2 to 1
             DepthwiseSeparableConv(128, 128, 1),
-            DepthwiseSeparableConv(128, 256, 2),
+            DepthwiseSeparableConv(128, 256, 2),  # Keep one stride=2
             DepthwiseSeparableConv(256, 256, 1),
-            DepthwiseSeparableConv(256, 512, 2),
+            DepthwiseSeparableConv(256, 512, 2),  # Keep one stride=2
 
             *[DepthwiseSeparableConv(512, 512, 1) for _ in range(5)],
 
-            DepthwiseSeparableConv(512, 1024, 2),
+            DepthwiseSeparableConv(512, 1024, 1),  # Changed stride=2 to 1
             DepthwiseSeparableConv(1024, 1024, 1),
         )
 
