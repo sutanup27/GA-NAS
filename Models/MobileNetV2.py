@@ -13,7 +13,7 @@ class InvertedResidual(nn.Module):
 
         layers = []
 
-        # 1️⃣ Expansion (1x1 conv)
+        # 1️ Expansion (1x1 conv)
         if expand_ratio != 1:
             layers.extend([
                 nn.Conv2d(in_channels, hidden_dim, 1, bias=False),
@@ -21,7 +21,7 @@ class InvertedResidual(nn.Module):
                 nn.ReLU6(inplace=True)
             ])
 
-        # 2️⃣ Depthwise convolution
+        # 2️ Depthwise convolution
         layers.extend([
             nn.Conv2d(hidden_dim, hidden_dim, 3, stride,
                       padding=1, groups=hidden_dim, bias=False),
@@ -29,7 +29,7 @@ class InvertedResidual(nn.Module):
             nn.ReLU6(inplace=True)
         ])
 
-        # 3️⃣ Projection (Linear Bottleneck)
+        # 3️ Projection (Linear Bottleneck)
         layers.extend([
             nn.Conv2d(hidden_dim, out_channels, 1, bias=False),
             nn.BatchNorm2d(out_channels),

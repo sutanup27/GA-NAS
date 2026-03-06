@@ -13,7 +13,7 @@ def main():
     basedir='PruningNAS'
     path='./dataset/cifar10'
     select_model='MobilenetV1'
-    prune_type='FGP'
+    prune_type='CP'
     #model_path=f'{basedir}/checkpoint/vgg_mrl_99.51375579833984.pth'
     model_path=r'PruningNAS\checkpoint\MobilenetV1\MobilenetV1_cifar_94.129997.pth'
     # Load the saved state_dict correctly
@@ -29,14 +29,14 @@ def main():
     print(f"Original model accuracy: {dense_model_accuracy:.4f}")
     ############# calculate sparsities (optional) #############################################
 
-    # sparsities, accuracies,names = sensitivity_scan(
-    # model, test_dataloader, scan_step=0.1, scan_start=0.1, scan_end=1.0,prune_type=prune_type,select_model=select_model)
+    sparsities, accuracies,names = sensitivity_scan(
+    model, test_dataloader, scan_step=0.1, scan_start=0.1, scan_end=1.0,prune_type=prune_type,select_model=select_model)
 
-    # with open(sparsities_path, "wb") as f:
-    #     pickle.dump(sparsities, f)
+    with open(sparsities_path, "wb") as f:
+        pickle.dump(sparsities, f)
 
-    # with open(accuracies_path, "wb") as f:
-    #     pickle.dump((accuracies,names), f)
+    with open(accuracies_path, "wb") as f:
+        pickle.dump((accuracies,names), f)
 
     ############################################################################################
     with open(sparsities_path, "rb") as f:

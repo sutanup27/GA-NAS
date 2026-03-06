@@ -417,7 +417,6 @@ def channel_prune_mobilenetv1(model, prune_ratios: Union[float, dict, list]):
     for name, module in model.model.named_children():
         if isinstance(module, DepthwiseSeparableConv):
             n_keep=prune_dws_block(module, prune_ratios[i], n_keep)
-            print(module)
             i=i+1
     
     model.fc.weight.set_(model.fc.weight.detach()[:,:n_keep]) #fixing number of inchannels due to previous channel change
@@ -437,6 +436,6 @@ def channel_prune(model, prune_ratio: Union[dict, float],model_type):
         exit(0)
 
 def ChannelPrunner(model,channel_pruning_ratio,model_type):
-    sorted_model = apply_channel_sorting(model,model_type)
+    sorted_model = apply_channel_sorting(model)
     pruned_model = channel_prune(sorted_model, channel_pruning_ratio,model_type)
     return pruned_model
