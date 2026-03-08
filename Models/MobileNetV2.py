@@ -38,30 +38,43 @@ class InvertedResidual(nn.Module):
         self.block = nn.Sequential(*layers)
 
     def forward(self, x):
+        # print(f"Input shape: {x.shape}")
+        # print(f"Block structure: {self.block(x).shape}")
+        y= self.block(x)
         if self.use_res_connect:
-            return x + self.block(x)
+        ################# This part is adjusted for channel pruning #############
+            if x.shape!=y.shape:
+                if y.size(1)<x.size(1):
+                    x=x[:,:y.size(1),:,:]
+                else:
+                    padded = torch.zeros_like(y)
+                    padded[:,:x.size(1),:,:]=x
+                    x=padded
+        #########################################################################
+            return x + y
         else:
-            return self.block(x)
+            return y
         
 
 class MobileNetV2(nn.Module):
-    def __init__(self, num_classes=1000):
+    def __init__(self, classes=1000):
         super().__init__()
 
         # Configuration: (expand_ratio, out_channels, num_blocks, stride)
+        # Adapted for CIFAR-10 (32x32) - reduced stride=2 operations
         self.cfgs = [
             (1, 16, 1, 1),
-            (6, 24, 2, 2),
+            (6, 24, 2, 1),  # Changed stride 2→1 for CIFAR-10
             (6, 32, 3, 2),
             (6, 64, 4, 2),
             (6, 96, 3, 1),
-            (6, 160, 3, 2),
+            (6, 160, 3, 1),  # Changed stride 2→1 for CIFAR-10
             (6, 320, 1, 1),
         ]
 
         layers = [nn.Sequential(
             nn.Conv2d(3, 32, kernel_size=3,
-                      stride=2, padding=1, bias=False),
+                      stride=1, padding=1, bias=False),  # Changed stride=2 to 1 for CIFAR-10
             nn.BatchNorm2d(32),
             nn.ReLU6(inplace=True)
         )]
@@ -86,7 +99,7 @@ class MobileNetV2(nn.Module):
 
         self.features = nn.Sequential(*layers)
         self.pool = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Linear(1280, num_classes)
+        self.fc = nn.Linear(1280, classes)
 
     def forward(self, x):
         x = self.features(x)

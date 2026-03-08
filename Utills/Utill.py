@@ -12,6 +12,7 @@ from torchvision.transforms import *
 
 from PruningNAS.Models.DenseNet import DenseBlock
 from PruningNAS.Models.MobileNetV1 import DepthwiseSeparableConv
+from PruningNAS.Models.MobileNetV2 import InvertedResidual
 from .PrunUtillCP import ChannelPrunner, count_densenet_prunable_layers
 from .PrunUtillFGP import fine_grained_prune
 from ..Models.ResNetBasic import ResNetBasic
@@ -79,11 +80,19 @@ def get_prunable_weights(model):
                 if parent_name[:-2] == 'blocks':
                     continue
                 prunable_weights.append(name)
-    elif 'mobilenet' in model.__class__.__name__.lower():
+    elif 'mobilenetv1' in model.__class__.__name__.lower():
         prunable_weights.append('model.0')
         for name, module in model.model.named_children():
             if isinstance(module, DepthwiseSeparableConv):
                 prunable_weights.append('model.'+name+'.depthwise')
+    elif 'mobilenetv2' in model.__class__.__name__.lower():
+        prunable_weights.append('features.0')
+        for name, module in model.features.named_modules():
+            if isinstance(module, InvertedResidual):
+                if len(module.block) != 5:  # Check if expansion is used
+                    prunable_weights.append('features.'+name+'.block.0')  # Expansion conv
+                prunable_weights.append('features.'+name+'.block.6')  # Projection conv
+        prunable_weights.append('features.18')
     else:
         print(f'model_type doesn\'t exists 3:{model.__class__.__name__}')
         exit(0)

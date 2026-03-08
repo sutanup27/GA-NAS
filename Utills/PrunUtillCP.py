@@ -9,6 +9,7 @@ from torchvision.transforms import *
 
 from PruningNAS.Models.MobileNetV1 import *
 from PruningNAS.Models.DenseNet import DenseBlock, TransitionLayer
+from PruningNAS.Models.MobileNetV2 import InvertedResidual
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -43,10 +44,18 @@ def count_densenet_prunable_layers(model):
 
 def count_mobilenet_blocks(model):
     count=0
-    for layer in model.model:
-        if isinstance(layer, DepthwiseSeparableConv):
-            count=count+1
-    return count
+    if model.__class__.__name__.lower()=='mobilenetv1':
+        for layer in model.model:
+            if isinstance(layer, DepthwiseSeparableConv):
+                count=count+1
+        return count
+    else:
+        for layer in model.features:
+            if isinstance(layer, InvertedResidual):
+                count=count+1
+        return count
+    
+
 
 def count_prunable_layers(model,model_type='Vgg-16'):
     if model_type=='Vgg-16':
@@ -131,7 +140,7 @@ def apply_channel_sorting(model):
     model_name = model.__class__.__name__.lower()
     if model_name[:3]=='vgg':
         return apply_channel_sorting_on_vgg(model)
-    elif model_name[:6]=='resnet' or model_name[:8]=='densenet' or model_name[:11]=='mobilenetv1':
+    elif model_name[:6]=='resnet' or model_name[:8]=='densenet' or model_name[:9]=='mobilenet':
         return apply_channel_sorting_on(model)
     else:
         print(f'model_type doesn\'t exists 1:{model_name}')
@@ -422,6 +431,90 @@ def channel_prune_mobilenetv1(model, prune_ratios: Union[float, dict, list]):
     model.fc.weight.set_(model.fc.weight.detach()[:,:n_keep]) #fixing number of inchannels due to previous channel change
     return model
 
+
+def channel_prune_mobilenetv2(model, prune_ratios: Union[float, dict, list]):
+    def prune_ir_block(block, prune_ratio1,prune_ratio2, prev_n_keep):
+        i=0
+        if len(block)!=5:
+            block[i].weight.set_(block[i].weight.detach()[:,:prev_n_keep]) #fixing number of inchannels due to previous channel change
+            original_channels = block[i].out_channels
+            n_keep = get_num_channels_to_keep(original_channels, prune_ratio1)
+            block[i].weight.set_(block[i].weight.detach()[:n_keep])
+
+            i=i+1
+            block[i].weight.set_(block[i].weight.detach()[:n_keep]) #fixing number of inchannels due to previous channel change
+            block[i].bias.set_(block[i].bias.detach()[:n_keep])
+            block[i].running_mean.set_(block[i].running_mean.detach()[:n_keep])
+            block[i].running_var.set_(block[i].running_var.detach()[:n_keep])
+            i=i+2
+        ###################################################
+        if prune_ratio1 is not None:
+            original_channels = block[i].out_channels
+            n_keep = get_num_channels_to_keep(original_channels, prune_ratio1)
+        else:
+            n_keep=prev_n_keep
+        block[i].weight.set_(block[i].weight.detach()[:n_keep]) #fixing number of inchannels due to previous channel change
+        block[i].groups=n_keep  # to handle depthwwise conv pruning
+
+        i= i+1
+        block[i].weight.set_(block[i].weight.detach()[:n_keep])
+        block[i].bias.set_(block[i].bias.detach()[:n_keep])
+        block[i].running_mean.set_(block[i].running_mean.detach()[:n_keep])
+        block[i].running_var.set_(block[i].running_var.detach()[:n_keep])
+        ###################################################
+        i=i+2
+        block[i].weight.set_(block[i].weight.detach()[:,:n_keep]) #fixing number of inchannels due to previous channel change
+        original_channels = block[i].out_channels
+        n_keep = get_num_channels_to_keep(original_channels, prune_ratio2)
+        block[i].weight.set_(block[i].weight.detach()[:n_keep])
+        i=i+1
+        block[i].weight.set_(block[i].weight.detach()[:n_keep])
+        block[i].bias.set_(block[i].bias.detach()[:n_keep])
+        block[i].running_mean.set_(block[i].running_mean.detach()[:n_keep])
+        block[i].running_var.set_(block[i].running_var.detach()[:n_keep])
+        
+        return n_keep #we will need n_keep to fix next conv' inchannels fixing
+    
+    assert isinstance(prune_ratios, (float, dict,list))
+    # note that for the ratios, it affects the previous conv output and next
+    # conv input, i.e., conv0 - ratio0 - conv1 - ratio1-...
+    if isinstance(prune_ratios, dict):
+        prune_ratios=list(prune_ratios.values())
+        assert len(prune_ratios) == count_mobilenet_blocks(model)*2+1
+    elif isinstance(prune_ratios, float):  # convert float to list
+        prune_ratios = [prune_ratios] * (count_mobilenet_blocks(model)*2+1)
+    else:
+        pass
+    original_channels=model.features[0][0].out_channels
+    n_keep = get_num_channels_to_keep(original_channels, prune_ratios[0])
+    model.features[0][0].weight.set_(model.features[0][0].weight.detach()[:n_keep])
+    model.features[0][1].weight.set_(model.features[0][1].weight.detach()[:n_keep])
+    model.features[0][1].bias.set_(model.features[0][1].bias.detach()[:n_keep])
+    model.features[0][1].running_mean.set_(model.features[0][1].running_mean.detach()[:n_keep])
+    model.features[0][1].running_var.set_(model.features[0][1].running_var.detach()[:n_keep])
+    i=1
+    for name, module in model.named_modules():
+        if isinstance(module, InvertedResidual):
+            if  len(module.block)==5: #if it is the first block, we only prune the output of the first conv and input of the second conv, but not the depthwise conv
+                n_keep=prune_ir_block(module.block,None, prune_ratios[i], n_keep)
+                i=i+1
+            else:
+                n_keep=prune_ir_block(module.block, prune_ratios[i],prune_ratios[i+1], n_keep)
+                i=i+2
+    
+    model.features[18].weight.set_(model.features[18].weight.detach()[:,:n_keep]) #fixing number of inchannels due to previous channel change
+    n_keep = get_num_channels_to_keep(model.features[18].out_channels, prune_ratios[i])
+    model.features[18].weight.set_(model.features[18].weight.detach()[:n_keep]) #fixing number of inchannels due to previous channel change
+    
+    model.features[19].weight.set_(model.features[19].weight.detach()[:n_keep])
+    model.features[19].bias.set_(model.features[19].bias.detach()[:n_keep])
+    model.features[19].running_mean.set_(model.features[19].running_mean.detach()[:n_keep])
+    model.features[19].running_var.set_(model.features[19].running_var.detach()[:n_keep])
+
+    model.fc.weight.set_(model.fc.weight.detach()[:,:n_keep]) #fixing number of inchannels due to previous channel change
+    return model
+
+
 def channel_prune(model, prune_ratio: Union[dict, float],model_type):
     if model_type[:3].lower()=='vgg':
         return channel_prune_vgg(model, prune_ratio)
@@ -430,7 +523,9 @@ def channel_prune(model, prune_ratio: Union[dict, float],model_type):
     elif model_type[:8].lower()=='densenet':
         return channel_prune_densenet(model, prune_ratio)        
     elif model_type[:11].lower()=='mobilenetv1':
-        return channel_prune_mobilenetv1(model, prune_ratio)        
+        return channel_prune_mobilenetv1(model, prune_ratio)
+    elif model_type[:11].lower()=='mobilenetv2':
+        return channel_prune_mobilenetv2(model, prune_ratio)
     else:
         print(f'model_type doesn\'t exists 2:{model_type}')
         exit(0)

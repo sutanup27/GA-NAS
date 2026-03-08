@@ -33,7 +33,7 @@ def main():
     classes=10
     train_dataloader, test_dataloader = get_dataloaders(path, batch_size=128)
 
-    select_model='MobilenetV1'
+    select_model='MobilenetV2'
     if select_model=='Vgg-16':
         model=VGG(classes=classes)
     elif select_model=='Resnet-18':
@@ -61,13 +61,13 @@ def main():
         exit()
 
     # ########load from path only for retraining #####
-    # model_path=r'PruningNAS\checkpoint\MobilenetV1\MobilenetV1_cifar_85.909996.pth'
-    # model = torch.load(model_path, map_location=torch.device(device),weights_only=False)  # Use 'cpu' if necessary
+    model_path=r'PruningNAS\checkpoint\MobilenetV2\MobilenetV2_cifar_94.349998.pth'
+    model = torch.load(model_path, map_location=torch.device(device),weights_only=False)  # Use 'cpu' if necessary
     # ################################################
     model = model.to(device)
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = SGD( model.parameters(), lr=0.01,  momentum=0.9,  weight_decay=5e-4,)
+    optimizer = SGD( model.parameters(), lr=0.01,  momentum=0.9,  weight_decay=5e-4,)  # Changed lr from 0.001 to 0.1
 
     num_epochs = 300
     scheduler = CosineAnnealingLR(optimizer, num_epochs)
