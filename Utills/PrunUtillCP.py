@@ -7,6 +7,7 @@ from torch.optim.lr_scheduler import *
 from torchvision.datasets import *
 from torchvision.transforms import *
 
+from PruningNAS.Models.Inceptionv1 import InceptionBlock
 from PruningNAS.Models.MobileNetV1 import *
 from PruningNAS.Models.DenseNet import DenseBlock, TransitionLayer
 from PruningNAS.Models.MobileNetV2 import InvertedResidual
@@ -54,7 +55,18 @@ def count_mobilenet_blocks(model):
             if isinstance(layer, InvertedResidual):
                 count=count+1
         return count
-    
+
+def count_inception_prunable_layers(model):
+    count = 0
+    for m in model.stem:
+        if isinstance(m, nn.Conv2d):
+            count += 1
+    for module in model.modules():
+        if isinstance(module, InceptionBlock):
+            for m in module.modules():
+                if isinstance(m, nn.Conv2d):
+                    count += 1
+    return count
 
 
 def count_prunable_layers(model,model_type='Vgg-16'):
@@ -136,15 +148,56 @@ def apply_channel_sorting_on(model):
     return model
 
 
-def apply_channel_sorting(model):
-    model_name = model.__class__.__name__.lower()
-    if model_name[:3]=='vgg':
-        return apply_channel_sorting_on_vgg(model)
-    elif model_name[:6]=='resnet' or model_name[:8]=='densenet' or model_name[:9]=='mobilenet':
-        return apply_channel_sorting_on(model)
-    else:
-        print(f'model_type doesn\'t exists 1:{model_name}')
-        exit(0)
+
+@torch.no_grad()
+def apply_channel_sorting_on_inception(model):
+    """
+    Sort channels in InceptionNet for structured pruning.
+    Stem: sequential conv chain, sort by next conv input importance.
+    InceptionBlock branches: sort internal reduce conv by next conv's importance.
+    """
+    model = copy.deepcopy(model)
+
+    # ── Stem: 3 Conv2d layers (no BN), sort each by next conv's importance ──
+    stem_convs = [m for m in model.stem if isinstance(m, nn.Conv2d)]
+    for i in range(len(stem_convs) - 1):
+        importance = get_input_channel_importance(stem_convs[i + 1].weight)
+        sort_idx   = torch.argsort(importance, descending=True)
+        # re-order output channels of conv[i]
+        stem_convs[i].weight.copy_(
+            torch.index_select(stem_convs[i].weight.detach(), 0, sort_idx))
+        # re-order input channels of conv[i+1]
+        stem_convs[i + 1].weight.copy_(
+            torch.index_select(stem_convs[i + 1].weight.detach(), 1, sort_idx))
+
+    # ── InceptionBlocks ──
+    for module in model.modules():
+        if not isinstance(module, InceptionBlock):
+            continue
+
+        # branch2: [Conv2d(reduce), ReLU, Conv2d(3x3)]  -> sort reduce output
+        b2_convs = [m for m in module.branch2 if isinstance(m, nn.Conv2d)]
+        if len(b2_convs) == 2:
+            importance = get_input_channel_importance(b2_convs[1].weight)
+            sort_idx   = torch.argsort(importance, descending=True)
+            b2_convs[0].weight.copy_(
+                torch.index_select(b2_convs[0].weight.detach(), 0, sort_idx))
+            b2_convs[1].weight.copy_(
+                torch.index_select(b2_convs[1].weight.detach(), 1, sort_idx))
+
+        # branch3: [Conv2d(reduce), ReLU, Conv2d(5x5)]  -> sort reduce output
+        b3_convs = [m for m in module.branch3 if isinstance(m, nn.Conv2d)]
+        if len(b3_convs) == 2:
+            importance = get_input_channel_importance(b3_convs[1].weight)
+            sort_idx   = torch.argsort(importance, descending=True)
+            b3_convs[0].weight.copy_(
+                torch.index_select(b3_convs[0].weight.detach(), 0, sort_idx))
+            b3_convs[1].weight.copy_(
+                torch.index_select(b3_convs[1].weight.detach(), 1, sort_idx))
+
+        # branch1 & branch4 are single Conv2d -- no internal sort needed
+
+    return model
 
 
 @torch.no_grad()
@@ -515,6 +568,112 @@ def channel_prune_mobilenetv2(model, prune_ratios: Union[float, dict, list]):
     return model
 
 
+
+@torch.no_grad()
+def channel_prune_inception(model, prune_ratios: Union[float, dict, list]):
+    # ── collect ordered inception blocks ──
+    inception_block_names = [
+        'inception3a','inception3b',
+        'inception4a','inception4b','inception4c','inception4d','inception4e',
+        'inception5a','inception5b'
+    ]
+    inception_blocks = [getattr(model, n) for n in inception_block_names
+                        if hasattr(model, n)]
+
+    n_stem_convs    = len([m for m in model.stem if isinstance(m, nn.Conv2d)])
+    n_ratios_needed = n_stem_convs + 6 * len(inception_blocks)
+
+    # ── normalise prune_ratios ──
+    assert isinstance(prune_ratios, (float, dict, list))
+    if isinstance(prune_ratios, float):
+        prune_ratios = [prune_ratios] * n_ratios_needed
+    elif isinstance(prune_ratios, dict):
+        prune_ratios = list(prune_ratios.values())
+    # else list -- use as-is
+
+    assert len(prune_ratios) == n_ratios_needed, \
+        f"Expected {n_ratios_needed} ratios, got {len(prune_ratios)}"
+
+    ratio_idx = 0
+
+    # ────────────────────────────────────────────────
+    #  Helper: prune a single Conv2d (no BN in this model)
+    # ────────────────────────────────────────────────
+    def prune_conv(conv, n_keep_in, n_keep_out):
+        conv.weight.set_(conv.weight.detach()[:n_keep_out, :n_keep_in])
+
+    # ────────────────────────────────────────────────
+    #  STEM  (3 Conv2d, no BN)
+    # ────────────────────────────────────────────────
+    stem_convs = [m for m in model.stem if isinstance(m, nn.Conv2d)]
+    n_keep = 3  # RGB input -- never pruned
+    for conv in stem_convs:
+        n_keep_out = get_num_channels_to_keep(conv.out_channels, prune_ratios[ratio_idx])
+        prune_conv(conv, n_keep, n_keep_out)
+        n_keep = n_keep_out
+        ratio_idx += 1
+
+    # n_keep now holds output channels of the last stem conv
+    # this is the `in_channels` for all 4 branches of each InceptionBlock
+
+    # ────────────────────────────────────────────────
+    #  InceptionBlocks
+    # ────────────────────────────────────────────────
+    for block in inception_blocks:
+        prev_n_keep = n_keep   # shared input to all 4 branches (concat input)
+
+        r_b1, r_b2r, r_b2, r_b3r, r_b3, r_b4 = prune_ratios[ratio_idx: ratio_idx + 6]
+        ratio_idx += 6
+
+        # ── branch1: single Conv2d ──
+        b1_conv         = block.branch1                          # Conv2d directly
+        n_keep_b1       = get_num_channels_to_keep(b1_conv.out_channels, r_b1)
+        prune_conv(b1_conv, prev_n_keep, n_keep_b1)
+
+        # ── branch2: [Conv2d reduce, ReLU, Conv2d 3x3] ──
+        b2_convs        = [m for m in block.branch2 if isinstance(m, nn.Conv2d)]
+        n_keep_b2r      = get_num_channels_to_keep(b2_convs[0].out_channels, r_b2r)
+        n_keep_b2       = get_num_channels_to_keep(b2_convs[1].out_channels, r_b2)
+        prune_conv(b2_convs[0], prev_n_keep, n_keep_b2r)
+        prune_conv(b2_convs[1], n_keep_b2r,  n_keep_b2)
+
+        # ── branch3: [Conv2d reduce, ReLU, Conv2d 5x5] ──
+        b3_convs        = [m for m in block.branch3 if isinstance(m, nn.Conv2d)]
+        n_keep_b3r      = get_num_channels_to_keep(b3_convs[0].out_channels, r_b3r)
+        n_keep_b3       = get_num_channels_to_keep(b3_convs[1].out_channels, r_b3)
+        prune_conv(b3_convs[0], prev_n_keep, n_keep_b3r)
+        prune_conv(b3_convs[1], n_keep_b3r,  n_keep_b3)
+
+        # ── branch4: [MaxPool2d, Conv2d proj] ──
+        b4_convs        = [m for m in block.branch4 if isinstance(m, nn.Conv2d)]
+        n_keep_b4       = get_num_channels_to_keep(b4_convs[0].out_channels, r_b4)
+        prune_conv(b4_convs[0], prev_n_keep, n_keep_b4)
+
+        # total concatenated output → input to next block
+        n_keep = n_keep_b1 + n_keep_b2 + n_keep_b3 + n_keep_b4
+
+    # ────────────────────────────────────────────────
+    #  Fix FC layer input features
+    # ────────────────────────────────────────────────
+    model.fc.weight.set_(model.fc.weight.detach()[:, :n_keep])
+
+    return model
+
+
+
+def apply_channel_sorting(model):
+    model_name = model.__class__.__name__.lower()
+    if model_name[:3]=='vgg':
+        return apply_channel_sorting_on_vgg(model)
+    elif model_name[:9]=='inception':                         
+        return apply_channel_sorting_on_inception(model)
+    elif model_name[:6]=='resnet' or model_name[:8]=='densenet' or model_name[:9]=='mobilenet':
+        return apply_channel_sorting_on(model)
+    else:
+        print(f'model_type doesn\'t exists 1:{model_name}')
+        exit(0)
+
+
 def channel_prune(model, prune_ratio: Union[dict, float],model_type):
     if model_type[:3].lower()=='vgg':
         return channel_prune_vgg(model, prune_ratio)
@@ -526,6 +685,8 @@ def channel_prune(model, prune_ratio: Union[dict, float],model_type):
         return channel_prune_mobilenetv1(model, prune_ratio)
     elif model_type[:11].lower()=='mobilenetv2':
         return channel_prune_mobilenetv2(model, prune_ratio)
+    elif model_type[:9].lower()=='inception':                
+        return channel_prune_inception(model, prune_ratio)
     else:
         print(f'model_type doesn\'t exists 2:{model_type}')
         exit(0)

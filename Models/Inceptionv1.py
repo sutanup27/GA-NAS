@@ -46,7 +46,7 @@ class InceptionBlock(nn.Module):
 
 class InceptionNet(nn.Module):
 
-    def __init__(self, num_classes=1000):
+    def __init__(self, classes=1000):
         super().__init__()
 
         self.stem = nn.Sequential(
@@ -79,7 +79,7 @@ class InceptionNet(nn.Module):
 
         self.avgpool = nn.AdaptiveAvgPool2d((1,1))
         self.dropout = nn.Dropout(0.4)
-        self.fc = nn.Linear(1024, num_classes)
+        self.fc = nn.Linear(1024, classes)
 
 
     def forward(self, x):
