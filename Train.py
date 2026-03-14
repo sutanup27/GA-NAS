@@ -10,6 +10,7 @@ from torch.optim.lr_scheduler import *
 from torchvision.datasets import *
 from torchvision.transforms import *
 
+from PruningNAS.Models.Inceptionv1 import InceptionNet
 from PruningNAS.Models.MobileNetV1 import MobileNetV1
 from PruningNAS.Models.MobileNetV2 import MobileNetV2
 from .Models.ResNetBasic import *
@@ -33,7 +34,7 @@ def main():
     classes=10
     train_dataloader, test_dataloader = get_dataloaders(path, batch_size=128)
 
-    select_model='MobilenetV2'
+    select_model='Inception'
     if select_model=='Vgg-16':
         model=VGG(classes=classes)
     elif select_model=='Resnet-18':
@@ -56,13 +57,15 @@ def main():
         model = MobileNetV1(classes=classes)
     elif select_model=='MobilenetV2':
         model = MobileNetV2(classes=classes)
+    elif select_model=='Inception':
+        model = InceptionNet(classes=classes)
     else:
         print("Model does not exists")
         exit()
 
     # ########load from path only for retraining #####
-    model_path=r'PruningNAS\checkpoint\MobilenetV2\MobilenetV2_cifar_94.349998.pth'
-    model = torch.load(model_path, map_location=torch.device(device),weights_only=False)  # Use 'cpu' if necessary
+    # model_path=r'PruningNAS\checkpoint\MobilenetV2\MobilenetV2_cifar_94.349998.pth'
+    # model = torch.load(model_path, map_location=torch.device(device),weights_only=False)  # Use 'cpu' if necessary
     # ################################################
     model = model.to(device)
 

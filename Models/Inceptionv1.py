@@ -3,46 +3,55 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class InceptionBlock(nn.Module):
-    def __init__(self, in_channels,
-                 c1,
-                 c3_reduce, c3,
-                 c5_reduce, c5,
-                 pool_proj):
+# ...existing code...
 
+class InceptionBlock(nn.Module):
+    def __init__(self, in_channels, c1, c3_reduce, c3, c5_reduce, c5, pool_proj):
         super().__init__()
 
         # 1x1 branch
-        self.branch1 = nn.Conv2d(in_channels, c1, kernel_size=1)
+        self.branch1 = nn.Sequential(
+            nn.Conv2d(in_channels, c1, kernel_size=1),
+            nn.BatchNorm2d(c1),
+            nn.ReLU(inplace=True)
+        )
 
         # 1x1 -> 3x3 branch
         self.branch2 = nn.Sequential(
             nn.Conv2d(in_channels, c3_reduce, kernel_size=1),
+            nn.BatchNorm2d(c3_reduce),
             nn.ReLU(inplace=True),
-            nn.Conv2d(c3_reduce, c3, kernel_size=3, padding=1)
+            nn.Conv2d(c3_reduce, c3, kernel_size=3, padding=1),
+            nn.BatchNorm2d(c3),
+            nn.ReLU(inplace=True)
         )
 
         # 1x1 -> 5x5 branch
         self.branch3 = nn.Sequential(
             nn.Conv2d(in_channels, c5_reduce, kernel_size=1),
+            nn.BatchNorm2d(c5_reduce),
             nn.ReLU(inplace=True),
-            nn.Conv2d(c5_reduce, c5, kernel_size=5, padding=2)
+            nn.Conv2d(c5_reduce, c5, kernel_size=5, padding=2),
+            nn.BatchNorm2d(c5),
+            nn.ReLU(inplace=True)
         )
 
         # pool -> 1x1
         self.branch4 = nn.Sequential(
             nn.MaxPool2d(kernel_size=3, stride=1, padding=1),
-            nn.Conv2d(in_channels, pool_proj, kernel_size=1)
+            nn.Conv2d(in_channels, pool_proj, kernel_size=1),
+            nn.BatchNorm2d(pool_proj),
+            nn.ReLU(inplace=True)
         )
 
     def forward(self, x):
-
         b1 = self.branch1(x)
         b2 = self.branch2(x)
         b3 = self.branch3(x)
         b4 = self.branch4(x)
-
         return torch.cat([b1, b2, b3, b4], dim=1)
+
+# ...existing code...
 
 class InceptionNet(nn.Module):
 

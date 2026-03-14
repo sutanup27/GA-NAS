@@ -571,11 +571,25 @@ def channel_prune_mobilenetv2(model, prune_ratios: Union[float, dict, list]):
 
 @torch.no_grad()
 def channel_prune_inception(model, prune_ratios: Union[float, dict, list]):
+
+    # ────────────────────────────────────────────────
+    #  Helper: prune a single Conv2d (no BN in this model)
+    # ────────────────────────────────────────────────
+    def prune_conv(conv, n_keep_in, n_keep_out):
+        """Prune conv input channels then output channels, update bias if exists."""
+        # 1) Fix input channels from previous layer's pruning
+        conv.weight.set_(conv.weight.detach()[:, :n_keep_in])
+        # 2) Prune output channels
+        conv.weight.set_(conv.weight.detach()[:n_keep_out])
+        # 3) Prune bias if it exists
+        if conv.bias is not None:
+            conv.bias.set_(conv.bias.detach()[:n_keep_out])
+
     # ── collect ordered inception blocks ──
     inception_block_names = [
-        'inception3a','inception3b',
-        'inception4a','inception4b','inception4c','inception4d','inception4e',
-        'inception5a','inception5b'
+        'inception3a', 'inception3b',
+        'inception4a', 'inception4b', 'inception4c', 'inception4d', 'inception4e',
+        'inception5a', 'inception5b'
     ]
     inception_blocks = [getattr(model, n) for n in inception_block_names
                         if hasattr(model, n)]
@@ -589,7 +603,6 @@ def channel_prune_inception(model, prune_ratios: Union[float, dict, list]):
         prune_ratios = [prune_ratios] * n_ratios_needed
     elif isinstance(prune_ratios, dict):
         prune_ratios = list(prune_ratios.values())
-    # else list -- use as-is
 
     assert len(prune_ratios) == n_ratios_needed, \
         f"Expected {n_ratios_needed} ratios, got {len(prune_ratios)}"
@@ -597,59 +610,58 @@ def channel_prune_inception(model, prune_ratios: Union[float, dict, list]):
     ratio_idx = 0
 
     # ────────────────────────────────────────────────
-    #  Helper: prune a single Conv2d (no BN in this model)
-    # ────────────────────────────────────────────────
-    def prune_conv(conv, n_keep_in, n_keep_out):
-        conv.weight.set_(conv.weight.detach()[:n_keep_out, :n_keep_in])
-
-    # ────────────────────────────────────────────────
-    #  STEM  (3 Conv2d, no BN)
+    #  STEM  (3 Conv2d, no BN, no bias by default)
+    #  stem structure:
+    #    Conv2d(3,  64, 7x7)  -> index 0
+    #    Conv2d(64, 64, 1x1)  -> index 1
+    #    Conv2d(64, 192, 3x3) -> index 2
     # ────────────────────────────────────────────────
     stem_convs = [m for m in model.stem if isinstance(m, nn.Conv2d)]
-    n_keep = 3  # RGB input -- never pruned
+    n_keep = 3  # RGB — never prune input channels of first conv
     for conv in stem_convs:
         n_keep_out = get_num_channels_to_keep(conv.out_channels, prune_ratios[ratio_idx])
         prune_conv(conv, n_keep, n_keep_out)
         n_keep = n_keep_out
         ratio_idx += 1
 
-    # n_keep now holds output channels of the last stem conv
-    # this is the `in_channels` for all 4 branches of each InceptionBlock
-
     # ────────────────────────────────────────────────
     #  InceptionBlocks
+    #  branch1 : Conv2d(in, c1, 1x1)                  -- bare Conv2d (may have bias)
+    #  branch2 : Sequential[Conv2d(in,c3r,1), ReLU, Conv2d(c3r,c3,3)]
+    #  branch3 : Sequential[Conv2d(in,c5r,1), ReLU, Conv2d(c5r,c5,5)]
+    #  branch4 : Sequential[MaxPool2d, Conv2d(in,pool_proj,1)]
     # ────────────────────────────────────────────────
     for block in inception_blocks:
-        prev_n_keep = n_keep   # shared input to all 4 branches (concat input)
+        prev_n_keep = n_keep  # all 4 branches share same input channel count
 
         r_b1, r_b2r, r_b2, r_b3r, r_b3, r_b4 = prune_ratios[ratio_idx: ratio_idx + 6]
         ratio_idx += 6
 
-        # ── branch1: single Conv2d ──
-        b1_conv         = block.branch1                          # Conv2d directly
-        n_keep_b1       = get_num_channels_to_keep(b1_conv.out_channels, r_b1)
+        # ── branch1: bare Conv2d ──
+        b1_conv   = block.branch1
+        n_keep_b1 = get_num_channels_to_keep(b1_conv.out_channels, r_b1)
         prune_conv(b1_conv, prev_n_keep, n_keep_b1)
 
         # ── branch2: [Conv2d reduce, ReLU, Conv2d 3x3] ──
-        b2_convs        = [m for m in block.branch2 if isinstance(m, nn.Conv2d)]
-        n_keep_b2r      = get_num_channels_to_keep(b2_convs[0].out_channels, r_b2r)
-        n_keep_b2       = get_num_channels_to_keep(b2_convs[1].out_channels, r_b2)
+        b2_convs  = [m for m in block.branch2 if isinstance(m, nn.Conv2d)]
+        n_keep_b2r = get_num_channels_to_keep(b2_convs[0].out_channels, r_b2r)
+        n_keep_b2  = get_num_channels_to_keep(b2_convs[1].out_channels, r_b2)
         prune_conv(b2_convs[0], prev_n_keep, n_keep_b2r)
         prune_conv(b2_convs[1], n_keep_b2r,  n_keep_b2)
 
         # ── branch3: [Conv2d reduce, ReLU, Conv2d 5x5] ──
-        b3_convs        = [m for m in block.branch3 if isinstance(m, nn.Conv2d)]
-        n_keep_b3r      = get_num_channels_to_keep(b3_convs[0].out_channels, r_b3r)
-        n_keep_b3       = get_num_channels_to_keep(b3_convs[1].out_channels, r_b3)
+        b3_convs  = [m for m in block.branch3 if isinstance(m, nn.Conv2d)]
+        n_keep_b3r = get_num_channels_to_keep(b3_convs[0].out_channels, r_b3r)
+        n_keep_b3  = get_num_channels_to_keep(b3_convs[1].out_channels, r_b3)
         prune_conv(b3_convs[0], prev_n_keep, n_keep_b3r)
         prune_conv(b3_convs[1], n_keep_b3r,  n_keep_b3)
 
         # ── branch4: [MaxPool2d, Conv2d proj] ──
-        b4_convs        = [m for m in block.branch4 if isinstance(m, nn.Conv2d)]
-        n_keep_b4       = get_num_channels_to_keep(b4_convs[0].out_channels, r_b4)
+        b4_convs  = [m for m in block.branch4 if isinstance(m, nn.Conv2d)]
+        n_keep_b4 = get_num_channels_to_keep(b4_convs[0].out_channels, r_b4)
         prune_conv(b4_convs[0], prev_n_keep, n_keep_b4)
 
-        # total concatenated output → input to next block
+        # concatenated output -> input to next block
         n_keep = n_keep_b1 + n_keep_b2 + n_keep_b3 + n_keep_b4
 
     # ────────────────────────────────────────────────
